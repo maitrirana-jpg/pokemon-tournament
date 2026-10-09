@@ -23,3 +23,15 @@ _Avoid_: All-play-all, league format
 **Record**:
 A Contender's count of wins, losses and ties across a Tournament; the three always add up to 15.
 _Avoid_: Stats, score, statistics (for a single Pokémon)
+
+**Round**:
+One of the 15 steps of a Round-robin: 8 Battles in which every Contender battles exactly once.
+_Avoid_: Matchday, week, stage (and never "round" for the Round-robin as a whole)
+
+**Standings**:
+Every Contender's Record at a given point in a Tournament, ranked from first to last.
+_Avoid_: Leaderboard, rankings, table, statistics
+
+**Leader**:
+The Contender ranked first in the Standings once at least one Round has been played.
+_Avoid_: Winner, champion (a Leader may still be overtaken until the last Round)
