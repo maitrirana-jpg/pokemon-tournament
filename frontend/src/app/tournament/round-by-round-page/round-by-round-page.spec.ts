@@ -56,6 +56,10 @@ describe('RoundByRoundPage', () => {
   it('starts a Tournament and shows all 16 Contenders even at Round 0 of 15', async () => {
     const { fixture, page } = await open();
     expect(allByTestId(page, 'contender-card')).toHaveLength(0);
+    // Nothing to process yet, so only the New Tournament button is offered.
+    expect(byTestId(page, 'start')!.textContent!.trim()).toBe('New Tournament');
+    expect(byTestId(page, 'process')).toBeNull();
+    expect(byTestId(page, 'round-counter')).toBeNull();
 
     byTestId(page, 'start')!.click();
     fixture.detectChanges();
@@ -160,18 +164,22 @@ describe('RoundByRoundPage', () => {
     await fixture.whenStable();
 
     expect(byTestId(page, 'round-counter')!.textContent!.trim()).toBe('Round 1 of 15');
-    const battles = allByTestId(page, 'battle').map((b) =>
-      b.textContent!.replace(/\s+/g, ' ').trim(),
-    );
+    const battles = allByTestId(page, 'battle');
     expect(battles).toHaveLength(8);
-    expect(battles[0]).toContain('pokemon-1 vs pokemon-16');
-    expect(battles[0]).toContain('pokemon-1 wins');
-    expect(battles[7]).toContain('pokemon-8 vs pokemon-9');
-    expect(battles[7]).toContain('Tie');
+    const text = (el: Element | null) => el?.textContent!.replace(/\s+/g, ' ').trim() ?? null;
+    // Each Battle card names the winner once, the other Contender, and the deciding rule.
+    expect(text(battles[0].querySelector('[data-testid="battle-winner"]'))).toBe('pokemon-1');
+    expect(text(battles[0].querySelector('[data-testid="battle-loser"]'))).toBe('pokemon-16');
+    expect(text(battles[0])).toContain('Higher base experience');
+    expect(text(battles[0])).not.toContain('wins');
+    // A tie has no winner.
+    expect(battles[7].querySelector('[data-testid="battle-winner"]')).toBeNull();
+    expect(text(battles[7])).toContain('pokemon-8');
+    expect(text(battles[7])).toContain('pokemon-9');
+    expect(text(battles[7])).toContain('Tie');
     expect(allByTestId(page, 'win-rate')[0].textContent!.trim()).toBe('100%');
-    // 1–7 share rank 1 with a win each; everyone else shares rank 8.
-    const medals = allByTestId(page, 'medal').map((m) => m.textContent!.trim());
-    expect(medals).toEqual([...Array(7).fill('🏆'), ...Array(9).fill('🥉')]);
+    // Medals wait for the Tournament to finish: after one Round half the field would share one.
+    expect(allByTestId(page, 'medal')).toHaveLength(0);
     expect(byTestId<HTMLButtonElement>(page, 'process')!.disabled).toBe(false);
   });
 
@@ -186,6 +194,9 @@ describe('RoundByRoundPage', () => {
 
     expect(byTestId<HTMLButtonElement>(page, 'process')!.disabled).toBe(true);
     expect(byTestId(page, 'round-counter')!.textContent!.trim()).toBe('Round 15 of 15');
+    // Medals appear once the Tournament is complete, by wins rank as in Classic.
+    const medals = allByTestId(page, 'medal').map((m) => m.textContent!.trim());
+    expect(medals).toEqual([...Array(7).fill('🏆'), ...Array(9).fill('🥉')]);
   });
 
   it('shows an error card when a Round fails, and Try again plays it', async () => {

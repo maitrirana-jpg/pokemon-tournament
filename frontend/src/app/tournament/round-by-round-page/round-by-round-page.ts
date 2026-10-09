@@ -5,7 +5,13 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Observable, catchError, finalize, map, of, switchMap } from 'rxjs';
 import { ContenderCard } from '../contender-card/contender-card';
 import { medalFor } from '../contender-display';
-import { Battle, Round, RoundByRoundApiService, TournamentView } from '../round-by-round-api';
+import {
+  Battle,
+  BattleContender,
+  Round,
+  RoundByRoundApiService,
+  TournamentView,
+} from '../round-by-round-api';
 
 const reasonLabels: Record<Battle['reason'], string> = {
   typeAdvantage: 'Type advantage',
@@ -18,6 +24,7 @@ const reasonLabels: Record<Battle['reason'], string> = {
   selector: 'app-round-by-round-page',
   imports: [ContenderCard, RouterLink],
   templateUrl: './round-by-round-page.html',
+  styleUrl: './round-by-round-page.scss',
 })
 export class RoundByRoundPage implements OnInit {
   private readonly api = inject(RoundByRoundApiService);
@@ -51,14 +58,14 @@ export class RoundByRoundPage implements OnInit {
     return tournament ? tournament.totalRounds - tournament.roundsPlayed : 0;
   });
 
-  /** Medals only mean something once a Round has been played. */
+  /** Medals wait for the last Round: earlier, half the field would share each one. */
   protected readonly cards = computed(() => {
     const tournament = this.tournament();
     if (!tournament) return [];
     const allWins = tournament.standings.map((c) => c.wins);
     return tournament.standings.map((contender) => ({
       contender,
-      medal: tournament.roundsPlayed > 0 ? medalFor(contender.wins, allWins) : null,
+      medal: tournament.status === 'complete' ? medalFor(contender.wins, allWins) : null,
     }));
   });
 
@@ -150,6 +157,14 @@ export class RoundByRoundPage implements OnInit {
 
   protected tryAgain(): void {
     this.retry();
+  }
+
+  /** Who won and who lost a Battle, or null for a tie. */
+  protected result(battle: Battle): { winner: BattleContender; loser: BattleContender } | null {
+    if (battle.winnerId === null) return null;
+    return battle.winnerId === battle.first.id
+      ? { winner: battle.first, loser: battle.second }
+      : { winner: battle.second, loser: battle.first };
   }
 
   protected winnerName(battle: Battle): string | null {

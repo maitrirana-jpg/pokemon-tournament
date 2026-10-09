@@ -5,50 +5,48 @@
         Round by round
       </span>
       <h1 class="h2 fw-bold mb-2">Pokémon League</h1>
-      <p class="text-body-secondary mx-auto mb-0">
+      <p class="text-body-secondary mx-auto mb-3">
         Start a Tournament, then play it one Round at a time.
       </p>
-    </div>
-  </header>
-
-  <div class="card border-0 shadow-sm p-3 mb-3 flex-row flex-wrap align-items-center gap-3">
-    @if (tournament(); as t) {
-      <span class="fw-semibold" data-testid="round-counter">
-        Round {{ t.roundsPlayed }} of {{ t.totalRounds }}
-      </span>
-    }
-    @if (loading() && tournament()) {
-      <span
-        class="spinner-border spinner-border-sm text-primary"
-        role="status"
-        data-testid="working"
-      >
-        <span class="visually-hidden">Working…</span>
-      </span>
-    }
-    <div class="ms-auto d-flex gap-2">
-      @if (tournament()) {
-        <button
-          type="button"
-          class="btn btn-primary"
-          data-testid="process"
-          [disabled]="!canProcess()"
-          (click)="processRound()"
-        >
-          Process Round
-        </button>
-      }
       <button
         type="button"
-        class="btn btn-outline-primary"
+        class="btn"
+        [class.btn-primary]="!tournament()"
+        [class.btn-outline-primary]="tournament()"
         data-testid="start"
         [disabled]="loading()"
         (click)="start()"
       >
-        Start Tournament
+        New Tournament
       </button>
     </div>
-  </div>
+  </header>
+
+  @if (tournament(); as t) {
+    <div class="card border-0 shadow-sm p-3 mb-3 flex-row flex-wrap align-items-center gap-3">
+      <span class="fw-semibold" data-testid="round-counter">
+        Round {{ t.roundsPlayed }} of {{ t.totalRounds }}
+      </span>
+      @if (loading()) {
+        <span
+          class="spinner-border spinner-border-sm text-primary"
+          role="status"
+          data-testid="working"
+        >
+          <span class="visually-hidden">Working…</span>
+        </span>
+      }
+      <button
+        type="button"
+        class="btn btn-primary ms-auto"
+        data-testid="process"
+        [disabled]="!canProcess()"
+        (click)="processRound()"
+      >
+        Process Round
+      </button>
+    </div>
+  }
 
   @if (loading() && !tournament()) {
     <div class="d-flex justify-content-center py-5" data-testid="loading">
@@ -109,22 +107,42 @@
       <section class="card border-0 shadow-sm mb-3" data-testid="round">
         <div class="card-body">
           <h2 class="h5 card-title">Round {{ round.number }}</h2>
-          <div class="list-group list-group-flush">
+          <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-2">
             @for (battle of round.battles; track battle.id) {
-              <button
-                type="button"
-                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                data-testid="battle"
-                [disabled]="loading()"
-                (click)="reviewBattle(battle.id)"
-              >
-                <span>{{ battle.first.name }} vs {{ battle.second.name }}</span>
-                @if (winnerName(battle); as winner) {
-                  <span class="badge text-bg-success">{{ winner }} wins</span>
-                } @else {
-                  <span class="badge text-bg-secondary">Tie</span>
-                }
-              </button>
+              <div class="col">
+                <button
+                  type="button"
+                  class="battle card h-100 w-100 text-start"
+                  [class.border-primary]="selectedBattle()?.id === battle.id"
+                  data-testid="battle"
+                  [disabled]="loading()"
+                  (click)="reviewBattle(battle.id)"
+                >
+                  <div class="card-body p-2">
+                    @if (result(battle); as r) {
+                      <div class="fw-semibold text-capitalize">
+                        <span class="text-success me-1" aria-hidden="true">✓</span>
+                        <span data-testid="battle-winner">{{ r.winner.name }}</span>
+                      </div>
+                      <div
+                        class="text-body-secondary text-capitalize ps-3"
+                        data-testid="battle-loser"
+                      >
+                        {{ r.loser.name }}
+                      </div>
+                    } @else {
+                      <div class="d-flex justify-content-between align-items-start">
+                        <div class="text-capitalize">
+                          <div>{{ battle.first.name }}</div>
+                          <div>{{ battle.second.name }}</div>
+                        </div>
+                        <span class="badge text-bg-secondary">Tie</span>
+                      </div>
+                    }
+                    <div class="small text-body-secondary mt-1">{{ reasonLabel(battle) }}</div>
+                  </div>
+                </button>
+              </div>
             }
           </div>
         </div>
