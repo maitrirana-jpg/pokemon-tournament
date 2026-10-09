@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 import { StatisticsPage } from './statistics-page';
 import { ContenderRecord } from '../contender-record';
 
@@ -45,7 +46,7 @@ describe('StatisticsPage', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [StatisticsPage],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     });
     http = TestBed.inject(HttpTestingController);
   });
@@ -234,4 +235,12 @@ describe('StatisticsPage', () => {
       expect(page.querySelectorAll('[data-testid="contender-card"]').length).toBe(8);
     });
   }
+
+  it('links back to the round-by-round view', async () => {
+    const { page } = await openWithResults();
+
+    expect(page.querySelector('[data-testid="round-by-round-view"]')!.getAttribute('href')).toBe(
+      '/',
+    );
+  });
 });

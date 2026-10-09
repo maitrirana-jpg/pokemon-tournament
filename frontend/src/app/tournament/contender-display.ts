@@ -2,9 +2,10 @@ import { ContenderRecord } from './contender-record';
 
 type Battles = Pick<ContenderRecord, 'wins' | 'losses' | 'ties'>;
 
-/** Share of Battles won, as a whole percent. */
+/** Share of Battles won, as a whole percent; 0 before any Battle. */
 export function winRate({ wins, losses, ties }: Battles): number {
-  return Math.round((wins / (wins + losses + ties)) * 100);
+  const battles = wins + losses + ties;
+  return battles === 0 ? 0 : Math.round((wins / battles) * 100);
 }
 
 export type Medal = '🏆' | '🥈' | '🥉';

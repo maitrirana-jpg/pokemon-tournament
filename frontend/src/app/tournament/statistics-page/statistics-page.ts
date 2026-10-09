@@ -1,5 +1,6 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ContenderCard } from '../contender-card/contender-card';
 import { medalFor } from '../contender-display';
@@ -9,7 +10,7 @@ import { SortDirection, SortField, TournamentApiService } from '../tournament-ap
 
 @Component({
   selector: 'app-statistics-page',
-  imports: [ContenderCard],
+  imports: [ContenderCard, RouterLink],
   templateUrl: './statistics-page.html',
   styleUrl: './statistics-page.scss',
 })

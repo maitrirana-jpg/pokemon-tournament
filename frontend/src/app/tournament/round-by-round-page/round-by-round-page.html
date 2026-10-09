@@ -1,0 +1,66 @@
+<main class="container py-4">
+  <header class="card border-0 shadow-sm text-center mb-3">
+    <div class="card-body py-4">
+      <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis fw-normal mb-2">
+        Round by round
+      </span>
+      <h1 class="h2 fw-bold mb-2">Pokémon League</h1>
+      <p class="text-body-secondary mx-auto mb-0">
+        Start a Tournament, then play it one Round at a time.
+      </p>
+    </div>
+  </header>
+
+  <div class="card border-0 shadow-sm p-3 mb-3 flex-row flex-wrap align-items-center gap-3">
+    @if (tournament(); as t) {
+      <span class="fw-semibold" data-testid="round-counter">
+        Round {{ t.roundsPlayed }} of {{ t.totalRounds }}
+      </span>
+    }
+    <button
+      type="button"
+      class="btn btn-primary ms-auto"
+      data-testid="start"
+      [disabled]="loading()"
+      (click)="start()"
+    >
+      Start Tournament
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="d-flex justify-content-center py-5" data-testid="loading">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Starting the Tournament…</span>
+      </div>
+    </div>
+  } @else if (failed()) {
+    <div
+      class="card border-danger mx-auto text-center"
+      style="max-width: 28rem"
+      data-testid="error-card"
+    >
+      <div class="card-body">
+        <h2 class="h5 card-title">The Tournament couldn't be started</h2>
+        <p class="card-text text-body-secondary">
+          PokéAPI isn't answering right now. Please try again.
+        </p>
+        <button type="button" class="btn btn-primary" (click)="start()">Try again</button>
+      </div>
+    </div>
+  } @else if (tournament(); as t) {
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3" data-testid="contender-grid">
+      @for (contender of t.standings; track contender.id) {
+        <div class="col">
+          <app-contender-card [contender]="contender" />
+        </div>
+      }
+    </div>
+  }
+
+  <footer class="text-center mt-4">
+    <a class="btn btn-outline-secondary" routerLink="/classic" data-testid="classic-view">
+      Classic view
+    </a>
+  </footer>
+</main>
