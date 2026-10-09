@@ -203,4 +203,55 @@ describe('RoundByRoundPage', () => {
     expect(byTestId(page, 'error-card')).toBeNull();
     expect(allByTestId(page, 'battle')).toHaveLength(8);
   });
+
+  async function openAfterTwoRounds() {
+    const opened = await openStarted();
+    const roundsUrl = `/pokemon/tournament/${startedTournament.id}/rounds`;
+    byTestId(opened.page, 'process')!.click();
+    http.expectOne(roundsUrl).flush(roundOne());
+    await opened.fixture.whenStable();
+    byTestId(opened.page, 'process')!.click();
+    const two = roundOne();
+    http.expectOne(roundsUrl).flush({
+      ...two,
+      round: {
+        number: 2,
+        battles: two.round.battles.map((b) => ({ ...b, id: b.id + 8, round: 2 })),
+      },
+      roundsPlayed: 2,
+    });
+    await opened.fixture.whenStable();
+    return opened;
+  }
+
+  it('lets the user pick any played Round to review its Battles', async () => {
+    const { fixture, page } = await openAfterTwoRounds();
+
+    const picks = allByTestId(page, 'round-pick');
+    expect(picks.map((p) => p.textContent!.trim())).toEqual(['1', '2']);
+
+    picks[0].click();
+    http.expectOne(`/pokemon/tournament/${startedTournament.id}/rounds/1`).flush(roundOne().round);
+    await fixture.whenStable();
+
+    expect(byTestId(page, 'round')!.querySelector('h2')!.textContent!.trim()).toBe('Round 1');
+    expect(allByTestId(page, 'battle')).toHaveLength(8);
+  });
+
+  it('shows a Battle in detail, with the reason it was decided', async () => {
+    const { fixture, page } = await openAfterTwoRounds();
+
+    allByTestId(page, 'battle')[0].click();
+    const battle = { ...roundOne().round.battles[0], id: 9, round: 2, reason: 'typeAdvantage' };
+    http.expectOne(`/pokemon/tournament/${startedTournament.id}/battles/9`).flush(battle);
+    await fixture.whenStable();
+
+    const detail = byTestId(page, 'battle-detail')!.textContent!.replace(/\s+/g, ' ');
+    expect(detail).toContain('Battle 9 · Round 2');
+    expect(detail).toContain('pokemon-1');
+    expect(detail).toContain('pokemon-16');
+    expect(detail).toContain('Base experience 100');
+    expect(detail).toContain('pokemon-1 wins');
+    expect(detail).toContain('Type advantage');
+  });
 });

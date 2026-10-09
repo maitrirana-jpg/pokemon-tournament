@@ -62,4 +62,14 @@ export class RoundByRoundApiService {
   playNextRound(tournamentId: string): Observable<RoundPlayedView> {
     return this.http.post<RoundPlayedView>(`/pokemon/tournament/${tournamentId}/rounds`, null);
   }
+
+  /** A Round already played, for review. */
+  getRound(tournamentId: string, roundNumber: number): Observable<Round> {
+    return this.http.get<Round>(`/pokemon/tournament/${tournamentId}/rounds/${roundNumber}`);
+  }
+
+  /** A Battle already played, for review. */
+  getBattle(tournamentId: string, battleId: number): Observable<Battle> {
+    return this.http.get<Battle>(`/pokemon/tournament/${tournamentId}/battles/${battleId}`);
+  }
 }

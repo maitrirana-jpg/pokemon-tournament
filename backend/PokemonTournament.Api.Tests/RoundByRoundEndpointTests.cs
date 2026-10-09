@@ -214,4 +214,62 @@ public class RoundByRoundEndpointTests(TournamentApiFactory factory) : IClassFix
             Assert.All(p.Standings, c => Assert.Equal(p.Round.Number, c.Wins + c.Losses + c.Ties));
         });
     }
+
+    [Fact]
+    public async Task A_played_round_can_be_reviewed_exactly_as_it_was_played()
+    {
+        var (_, tournament) = await Start();
+        var first = await ProcessRound(tournament.Id);
+        await ProcessRound(tournament.Id);
+
+        var reviewed = await factory.CreateClient().GetFromJsonAsync<RoundDto>(
+            $"/pokemon/tournament/{tournament.Id}/rounds/1");
+
+        Assert.Equal(first.Round.Number, reviewed!.Number);
+        Assert.Equal(first.Round.Battles, reviewed.Battles);
+    }
+
+    [Fact]
+    public async Task A_played_battle_can_be_reviewed_with_its_reason()
+    {
+        var (_, tournament) = await Start();
+        await ProcessRound(tournament.Id);
+        var second = await ProcessRound(tournament.Id);
+        var battle = second.Round.Battles[^1];
+
+        var reviewed = await factory.CreateClient().GetFromJsonAsync<BattleDto>(
+            $"/pokemon/tournament/{tournament.Id}/battles/{battle.Id}");
+
+        Assert.Equal(16, battle.Id);
+        Assert.Equal(battle, reviewed);
+    }
+
+    [Theory]
+    [InlineData("rounds/2", "round not found")]   // not played yet
+    [InlineData("rounds/0", "round not found")]
+    [InlineData("rounds/16", "round not found")]
+    [InlineData("battles/9", "battle not found")] // Round 2 not played yet
+    [InlineData("battles/0", "battle not found")]
+    [InlineData("battles/121", "battle not found")]
+    public async Task Rounds_and_battles_not_played_are_not_found(string path, string error)
+    {
+        var (_, tournament) = await Start();
+        await ProcessRound(tournament.Id);
+
+        var response = await factory.CreateClient().GetAsync($"/pokemon/tournament/{tournament.Id}/{path}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal($$"""{"error":"{{error}}"}""", await response.Content.ReadAsStringAsync());
+    }
+
+    [Theory]
+    [InlineData("rounds/1")]
+    [InlineData("battles/1")]
+    public async Task Reviewing_an_unknown_tournament_is_not_found(string path)
+    {
+        var response = await factory.CreateClient().GetAsync($"/pokemon/tournament/{Guid.NewGuid()}/{path}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal("""{"error":"tournament not found"}""", await response.Content.ReadAsStringAsync());
+    }
 }

@@ -23,6 +23,20 @@ public sealed class TournamentController(TournamentService tournaments, RoundByR
             ? TournamentView.From(tournament)
             : NotFound(new { error = "tournament not found" });
 
+    /// <summary>A Round already played, for review.</summary>
+    [HttpGet("{id:guid}/rounds/{roundNumber:int}")]
+    public ActionResult<Round> GetRound(Guid id, int roundNumber) =>
+        roundByRound.Find(id) is not { } tournament ? NotFound(new { error = "tournament not found" })
+        : tournament.FindRound(roundNumber) is { } round ? round
+        : NotFound(new { error = "round not found" });
+
+    /// <summary>A Battle already played, for review.</summary>
+    [HttpGet("{id:guid}/battles/{battleId:int}")]
+    public ActionResult<Battle> GetBattle(Guid id, int battleId) =>
+        roundByRound.Find(id) is not { } tournament ? NotFound(new { error = "tournament not found" })
+        : tournament.FindBattle(battleId) is { } battle ? battle
+        : NotFound(new { error = "battle not found" });
+
     /// <summary>Plays the next Round of a round-by-round Tournament.</summary>
     [HttpPost("{id:guid}/rounds")]
     public ActionResult<RoundPlayed> PlayNextRound(Guid id)

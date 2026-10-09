@@ -6,6 +6,12 @@ import { ContenderCard } from '../contender-card/contender-card';
 import { medalFor } from '../contender-display';
 import { Battle, Round, RoundByRoundApiService, TournamentView } from '../round-by-round-api';
 
+const reasonLabels: Record<Battle['reason'], string> = {
+  typeAdvantage: 'Type advantage',
+  baseExperience: 'Higher base experience',
+  equalBaseExperience: 'Equal base experience',
+};
+
 /** Runs a Tournament one Round at a time. */
 @Component({
   selector: 'app-round-by-round-page',
@@ -18,12 +24,18 @@ export class RoundByRoundPage {
 
   protected readonly tournament = signal<TournamentView | null>(null);
   protected readonly currentRound = signal<Round | null>(null);
+  protected readonly selectedBattle = signal<Battle | null>(null);
   protected readonly loading = signal(false);
   protected readonly failed = signal(false);
   private retry: () => void = () => this.start();
 
   protected readonly canProcess = computed(
     () => !this.loading() && this.tournament()?.status === 'inProgress',
+  );
+
+  /** The numbers of every Round played so far, for the Round picker. */
+  protected readonly playedRounds = computed(() =>
+    Array.from({ length: this.tournament()?.roundsPlayed ?? 0 }, (_, i) => i + 1),
   );
 
   /** Medals only mean something once a Round has been played. */
@@ -62,8 +74,36 @@ export class RoundByRoundPage {
           status: played.status,
         });
         this.currentRound.set(played.round);
+        this.selectedBattle.set(null);
       },
     );
+  }
+
+  protected reviewRound(roundNumber: number): void {
+    const tournament = this.tournament();
+    if (!tournament) return;
+    this.run(
+      () => this.reviewRound(roundNumber),
+      this.api.getRound(tournament.id, roundNumber),
+      (round) => {
+        this.currentRound.set(round);
+        this.selectedBattle.set(null);
+      },
+    );
+  }
+
+  protected reviewBattle(battleId: number): void {
+    const tournament = this.tournament();
+    if (!tournament) return;
+    this.run(
+      () => this.reviewBattle(battleId),
+      this.api.getBattle(tournament.id, battleId),
+      (battle) => this.selectedBattle.set(battle),
+    );
+  }
+
+  protected reasonLabel(battle: Battle): string {
+    return reasonLabels[battle.reason];
   }
 
   protected tryAgain(): void {
