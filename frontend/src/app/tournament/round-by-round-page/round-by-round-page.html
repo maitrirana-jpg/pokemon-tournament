@@ -82,24 +82,28 @@
       </div>
     </div>
   } @else if (tournament()) {
-    @if (playedRounds().length > 0) {
-      <nav class="d-flex flex-wrap align-items-center gap-1 mb-3" aria-label="Rounds played">
-        <span class="small text-body-secondary me-1">Review Round</span>
-        @for (number of playedRounds(); track number) {
-          <button
-            type="button"
-            class="btn btn-sm"
-            [class.btn-primary]="currentRound()?.number === number"
-            [class.btn-outline-primary]="currentRound()?.number !== number"
-            data-testid="round-pick"
-            [disabled]="loading()"
-            (click)="reviewRound(number)"
-          >
-            {{ number }}
-          </button>
-        }
-      </nav>
-    }
+    <nav class="d-flex flex-wrap align-items-center gap-1 mb-3" aria-label="Rounds">
+      <span class="small text-body-secondary me-1">Rounds</span>
+      @for (slot of roundStrip(); track slot.number) {
+        <button
+          type="button"
+          class="btn btn-sm"
+          [class.btn-primary]="currentRound()?.number === slot.number"
+          [class.btn-outline-primary]="slot.played && currentRound()?.number !== slot.number"
+          [class.btn-outline-secondary]="!slot.played"
+          [attr.aria-current]="currentRound()?.number === slot.number ? 'true' : null"
+          [attr.title]="slot.played ? 'Review Round ' + slot.number : 'Not played yet'"
+          data-testid="round-pick"
+          [disabled]="!slot.played || loading()"
+          (click)="reviewRound(slot.number)"
+        >
+          {{ slot.number }}
+        </button>
+      }
+      <span class="small text-body-secondary ms-2" data-testid="rounds-left">
+        {{ roundsLeft() }} {{ roundsLeft() === 1 ? 'Round' : 'Rounds' }} left
+      </span>
+    </nav>
 
     @if (currentRound(); as round) {
       <section class="card border-0 shadow-sm mb-3" data-testid="round">

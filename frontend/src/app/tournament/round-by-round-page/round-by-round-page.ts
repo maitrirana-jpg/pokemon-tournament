@@ -2,7 +2,7 @@ import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angula
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Observable, finalize } from 'rxjs';
+import { Observable, catchError, finalize, map, of, switchMap } from 'rxjs';
 import { ContenderCard } from '../contender-card/contender-card';
 import { medalFor } from '../contender-display';
 import { Battle, Round, RoundByRoundApiService, TournamentView } from '../round-by-round-api';
@@ -36,10 +36,20 @@ export class RoundByRoundPage implements OnInit {
     () => !this.loading() && this.tournament()?.status === 'inProgress',
   );
 
-  /** The numbers of every Round played so far, for the Round picker. */
-  protected readonly playedRounds = computed(() =>
-    Array.from({ length: this.tournament()?.roundsPlayed ?? 0 }, (_, i) => i + 1),
-  );
+  /** Every Round of the Tournament, in order, marking which have been played. */
+  protected readonly roundStrip = computed(() => {
+    const tournament = this.tournament();
+    if (!tournament) return [];
+    return Array.from({ length: tournament.totalRounds }, (_, i) => ({
+      number: i + 1,
+      played: i < tournament.roundsPlayed,
+    }));
+  });
+
+  protected readonly roundsLeft = computed(() => {
+    const tournament = this.tournament();
+    return tournament ? tournament.totalRounds - tournament.roundsPlayed : 0;
+  });
 
   /** Medals only mean something once a Round has been played. */
   protected readonly cards = computed(() => {
@@ -69,11 +79,25 @@ export class RoundByRoundPage implements OnInit {
     );
   }
 
+  /** Loads a stored Tournament together with its newest Round, which is shown by default. */
   private resume(tournamentId: string): void {
     this.run(
       () => this.resume(tournamentId),
-      this.api.getTournament(tournamentId),
-      (tournament) => this.tournament.set(tournament),
+      this.api.getTournament(tournamentId).pipe(
+        switchMap((tournament) =>
+          tournament.roundsPlayed === 0
+            ? of({ tournament, round: null })
+            : this.api.getRound(tournament.id, tournament.roundsPlayed).pipe(
+                // Losing the newest Round must not hide the Tournament: show it without one.
+                catchError(() => of(null)),
+                map((round) => ({ tournament, round })),
+              ),
+        ),
+      ),
+      ({ tournament, round }) => {
+        this.tournament.set(tournament);
+        this.currentRound.set(round);
+      },
       true,
     );
   }
