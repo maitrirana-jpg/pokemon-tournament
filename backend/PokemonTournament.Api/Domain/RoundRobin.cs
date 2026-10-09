@@ -5,9 +5,7 @@ public sealed class RoundRobin(BattleService battles)
 {
     public IReadOnlyList<ContenderRecord> Play(IReadOnlyList<Pokemon> contenders)
     {
-        var wins = new int[contenders.Count];
-        var losses = new int[contenders.Count];
-        var ties = new int[contenders.Count];
+        var tallies = contenders.Select(_ => new Tally()).ToArray();
 
         for (var i = 0; i < contenders.Count; i++)
         for (var j = i + 1; j < contenders.Count; j++)
@@ -15,22 +13,29 @@ public sealed class RoundRobin(BattleService battles)
             switch (battles.Resolve(contenders[i], contenders[j]))
             {
                 case BattleOutcome.FirstWins:
-                    wins[i]++;
-                    losses[j]++;
+                    tallies[i].Wins++;
+                    tallies[j].Losses++;
                     break;
                 case BattleOutcome.SecondWins:
-                    wins[j]++;
-                    losses[i]++;
+                    tallies[j].Wins++;
+                    tallies[i].Losses++;
                     break;
                 default:
-                    ties[i]++;
-                    ties[j]++;
+                    tallies[i].Ties++;
+                    tallies[j].Ties++;
                     break;
             }
         }
 
         return contenders
-            .Select((p, i) => new ContenderRecord(p.Id, p.Name, p.Type, wins[i], losses[i], ties[i]))
+            .Zip(tallies, (p, t) => new ContenderRecord(p.Id, p.Name, p.Type, t.Wins, t.Losses, t.Ties))
             .ToList();
+    }
+
+    private sealed class Tally
+    {
+        public int Wins;
+        public int Losses;
+        public int Ties;
     }
 }

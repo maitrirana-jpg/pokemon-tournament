@@ -180,7 +180,7 @@ describe('StatisticsPage', () => {
     expect(medals.get('pokemon-13')).toBeNull();
   });
 
-  it('plays exactly one new Tournament on "New tournament", keeping the selected sort', async () => {
+  it('plays one new Tournament on "New tournament", keeping the sort', async () => {
     const { fixture, page } = await openWithResults();
     choose(page, 'sort-field', 'id');
     choose(page, 'sort-direction', 'asc');

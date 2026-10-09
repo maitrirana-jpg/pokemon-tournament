@@ -3,9 +3,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
 import { ContenderCard } from '../contender-card/contender-card';
 import { medalFor } from '../contender-display';
-import { ContenderRecord, SortDirection, SortField } from '../contender-record';
+import { ContenderRecord } from '../contender-record';
 import { sortContenders } from '../sort-contenders';
-import { TournamentApi } from '../tournament-api';
+import { SortDirection, SortField, TournamentApiService } from '../tournament-api';
 
 @Component({
   selector: 'app-statistics-page',
@@ -14,7 +14,7 @@ import { TournamentApi } from '../tournament-api';
   styleUrl: './statistics-page.scss',
 })
 export class StatisticsPage implements OnInit {
-  private readonly api = inject(TournamentApi);
+  private readonly api = inject(TournamentApiService);
   private readonly destroyRef = inject(DestroyRef);
 
   private readonly contenders = signal<ContenderRecord[]>([]);

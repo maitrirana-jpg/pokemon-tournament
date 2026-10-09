@@ -24,11 +24,11 @@ public sealed class PokeApiClient(HttpClient http) : IPokemonClient
             throw new PokemonSourceException($"PokéAPI request for Pokémon {id} failed.", e);
         }
 
-        if (dto is null || dto.Types is not { Count: > 0 })
+        if (dto is null || dto.Types is not { Count: > 0 } || dto.BaseExperience is not { } baseExperience)
             throw new PokemonSourceException($"PokéAPI returned no usable body for Pokémon {id}.");
 
         var primaryType = dto.Types.OrderBy(t => t.Slot).First().Type.Name;
-        return new Pokemon(dto.Id, dto.Name, primaryType, dto.BaseExperience ?? 0);
+        return new Pokemon(dto.Id, dto.Name, primaryType, baseExperience);
     }
 
     private sealed record PokemonDto(

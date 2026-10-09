@@ -7,10 +7,6 @@ namespace PokemonTournament.Api.Controllers;
 [Route("pokemon/tournament")]
 public sealed class TournamentController(TournamentService tournaments) : ControllerBase
 {
-    // Names compare by code point, not by the server's culture.
-    private static readonly Comparer<IComparable> OrdinalComparer = Comparer<IComparable>.Create((a, b) =>
-        a is string x && b is string y ? string.CompareOrdinal(x, y) : a.CompareTo(b));
-
     [HttpGet("statistics")]
     public async Task<ActionResult<IReadOnlyList<ContenderRecord>>> GetStatistics(
         [FromQuery] string? sortBy,
@@ -20,31 +16,30 @@ public sealed class TournamentController(TournamentService tournaments) : Contro
         if (string.IsNullOrEmpty(sortBy))
             return BadRequest(new { error = "sortBy parameter is required" });
 
-        Func<ContenderRecord, IComparable>? sortKey = sortBy.ToLowerInvariant() switch
+        SortField? field = sortBy.ToLowerInvariant() switch
         {
-            "wins" => r => r.Wins,
-            "losses" => r => r.Losses,
-            "ties" => r => r.Ties,
-            "name" => r => r.Name,
-            "id" => r => r.Id,
+            "wins" => SortField.Wins,
+            "losses" => SortField.Losses,
+            "ties" => SortField.Ties,
+            "name" => SortField.Name,
+            "id" => SortField.Id,
             _ => null,
         };
-        if (sortKey is null)
+        if (field is null)
             return BadRequest(new { error = "sortBy parameter is invalid" });
 
-        bool? descending = sortDirection?.ToLowerInvariant() switch
+        SortDirection? direction = sortDirection?.ToLowerInvariant() switch
         {
-            null or "asc" => false,
-            "desc" => true,
+            null or "asc" => SortDirection.Asc,
+            "desc" => SortDirection.Desc,
             _ => null,
         };
-        if (descending is null)
+        if (direction is null)
             return BadRequest(new { error = "sortDirection parameter is invalid" });
 
-        IReadOnlyList<ContenderRecord> records;
         try
         {
-            records = await tournaments.PlayAsync(cancellationToken);
+            return Ok(await tournaments.PlayAsync(field.Value, direction.Value, cancellationToken));
         }
         catch (PokemonSourceTimeoutException)
         {
@@ -54,8 +49,5 @@ public sealed class TournamentController(TournamentService tournaments) : Contro
         {
             return StatusCode(StatusCodes.Status502BadGateway, new { error = "PokéAPI request failed" });
         }
-
-        var sorted = descending.Value ? records.OrderByDescending(sortKey, OrdinalComparer) : records.OrderBy(sortKey, OrdinalComparer);
-        return Ok(sorted.ThenBy(r => r.Id).ToList());
     }
 }

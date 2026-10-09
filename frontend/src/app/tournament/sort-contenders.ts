@@ -1,4 +1,5 @@
-import { ContenderRecord, SortDirection, SortField } from './contender-record';
+import { ContenderRecord } from './contender-record';
+import { SortDirection, SortField } from './tournament-api';
 
 /**
  * Orders Contenders by the same rules as the API: by `field` in `direction`,

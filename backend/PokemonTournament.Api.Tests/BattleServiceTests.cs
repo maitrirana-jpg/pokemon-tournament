@@ -59,6 +59,16 @@ public class BattleServiceTests
     }
 
     [Fact]
+    public void Same_type_with_equal_base_experience_is_a_tie()
+    {
+        var fire = Contender("fire", baseExperience: 62);
+        var otherFire = Contender("fire", baseExperience: 62);
+
+        Assert.Equal(BattleOutcome.Tie, _battles.Resolve(fire, otherFire));
+        Assert.Equal(BattleOutcome.Tie, _battles.Resolve(otherFire, fire));
+    }
+
+    [Fact]
     public void Equal_base_experience_without_a_type_rule_is_a_tie()
     {
         var normal = Contender("normal", baseExperience: 100);
