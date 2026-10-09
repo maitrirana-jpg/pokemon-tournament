@@ -1,0 +1,29 @@
+# Assessment brief (not ours to publish)
+Assessment-Doc/
+
+# Local Claude settings
+.claude/settings.local.json
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# .NET
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+
+# Angular / Node
+node_modules/
+dist/
+.angular/
+coverage/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
