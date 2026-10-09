@@ -23,6 +23,22 @@ public sealed class TournamentController(TournamentService tournaments, RoundByR
             ? TournamentView.From(tournament)
             : NotFound(new { error = "tournament not found" });
 
+    /// <summary>Plays the next Round of a round-by-round Tournament.</summary>
+    [HttpPost("{id:guid}/rounds")]
+    public ActionResult<RoundPlayed> PlayNextRound(Guid id)
+    {
+        try
+        {
+            return roundByRound.PlayNextRound(id) is { } played
+                ? played
+                : NotFound(new { error = "tournament not found" });
+        }
+        catch (TournamentCompleteException)
+        {
+            return Conflict(new { error = "tournament is complete" });
+        }
+    }
+
     [HttpGet("statistics")]
     public async Task<ActionResult<IReadOnlyList<ContenderRecord>>> GetStatistics(
         [FromQuery] string? sortBy,

@@ -17,21 +17,34 @@
         Round {{ t.roundsPlayed }} of {{ t.totalRounds }}
       </span>
     }
-    <button
-      type="button"
-      class="btn btn-primary ms-auto"
-      data-testid="start"
-      [disabled]="loading()"
-      (click)="start()"
-    >
-      Start Tournament
-    </button>
+    <div class="ms-auto d-flex gap-2">
+      @if (tournament()) {
+        <button
+          type="button"
+          class="btn btn-primary"
+          data-testid="process"
+          [disabled]="!canProcess()"
+          (click)="processRound()"
+        >
+          Process Round
+        </button>
+      }
+      <button
+        type="button"
+        class="btn btn-outline-primary"
+        data-testid="start"
+        [disabled]="loading()"
+        (click)="start()"
+      >
+        Start Tournament
+      </button>
+    </div>
   </div>
 
   @if (loading()) {
     <div class="d-flex justify-content-center py-5" data-testid="loading">
       <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Starting the Tournament…</span>
+        <span class="visually-hidden">Working…</span>
       </div>
     </div>
   } @else if (failed()) {
@@ -41,18 +54,41 @@
       data-testid="error-card"
     >
       <div class="card-body">
-        <h2 class="h5 card-title">The Tournament couldn't be started</h2>
+        <h2 class="h5 card-title">Something went wrong</h2>
         <p class="card-text text-body-secondary">
-          PokéAPI isn't answering right now. Please try again.
+          The Tournament server or PokéAPI isn't answering right now. Please try again.
         </p>
-        <button type="button" class="btn btn-primary" (click)="start()">Try again</button>
+        <button type="button" class="btn btn-primary" (click)="tryAgain()">Try again</button>
       </div>
     </div>
-  } @else if (tournament(); as t) {
+  } @else if (tournament()) {
+    @if (currentRound(); as round) {
+      <section class="card border-0 shadow-sm mb-3" data-testid="round">
+        <div class="card-body">
+          <h2 class="h5 card-title">Round {{ round.number }}</h2>
+          <ul class="list-group list-group-flush">
+            @for (battle of round.battles; track battle.id) {
+              <li
+                class="list-group-item d-flex justify-content-between align-items-center"
+                data-testid="battle"
+              >
+                <span>{{ battle.first.name }} vs {{ battle.second.name }}</span>
+                @if (winnerName(battle); as winner) {
+                  <span class="badge text-bg-success">{{ winner }} wins</span>
+                } @else {
+                  <span class="badge text-bg-secondary">Tie</span>
+                }
+              </li>
+            }
+          </ul>
+        </div>
+      </section>
+    }
+
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3" data-testid="contender-grid">
-      @for (contender of t.standings; track contender.id) {
+      @for (card of cards(); track card.contender.id) {
         <div class="col">
-          <app-contender-card [contender]="contender" />
+          <app-contender-card [contender]="card.contender" [medal]="card.medal" />
         </div>
       }
     </div>
