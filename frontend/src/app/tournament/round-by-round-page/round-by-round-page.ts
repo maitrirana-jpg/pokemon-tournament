@@ -1,6 +1,7 @@
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Observable, finalize } from 'rxjs';
 import { ContenderCard } from '../contender-card/contender-card';
 import { medalFor } from '../contender-display';
@@ -18,15 +19,17 @@ const reasonLabels: Record<Battle['reason'], string> = {
   imports: [ContenderCard, RouterLink],
   templateUrl: './round-by-round-page.html',
 })
-export class RoundByRoundPage {
+export class RoundByRoundPage implements OnInit {
   private readonly api = inject(RoundByRoundApiService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly tournament = signal<TournamentView | null>(null);
   protected readonly currentRound = signal<Round | null>(null);
   protected readonly selectedBattle = signal<Battle | null>(null);
   protected readonly loading = signal(false);
   protected readonly failed = signal(false);
+  protected readonly notFound = signal(false);
   private retry: () => void = () => this.start();
 
   protected readonly canProcess = computed(
@@ -49,6 +52,12 @@ export class RoundByRoundPage {
     }));
   });
 
+  /** Opened as /tournament/:id, the page resumes that stored Tournament. */
+  ngOnInit(): void {
+    const id = this.route.snapshot.paramMap.get('id');
+    if (id) this.resume(id);
+  }
+
   protected start(): void {
     this.run(
       () => this.start(),
@@ -57,6 +66,15 @@ export class RoundByRoundPage {
         this.tournament.set(tournament);
         this.currentRound.set(null);
       },
+    );
+  }
+
+  private resume(tournamentId: string): void {
+    this.run(
+      () => this.resume(tournamentId),
+      this.api.getTournament(tournamentId),
+      (tournament) => this.tournament.set(tournament),
+      true,
     );
   }
 
@@ -115,15 +133,38 @@ export class RoundByRoundPage {
     return battle.winnerId === battle.first.id ? battle.first.name : battle.second.name;
   }
 
-  private run<T>(retry: () => void, request: Observable<T>, apply: (result: T) => void): void {
+  /**
+   * Sends a request with the shared loading and error handling. Only loading the Tournament
+   * itself passes `missingTournamentOn404`, so a 404 there means the Tournament doesn't exist.
+   */
+  private run<T>(
+    retry: () => void,
+    request: Observable<T>,
+    apply: (result: T) => void,
+    missingTournamentOn404 = false,
+  ): void {
     this.retry = retry;
     this.failed.set(false);
+    this.notFound.set(false);
     this.loading.set(true);
     request
       .pipe(
         finalize(() => this.loading.set(false)),
         takeUntilDestroyed(this.destroyRef),
       )
-      .subscribe({ next: apply, error: () => this.failed.set(true) });
+      .subscribe({
+        next: apply,
+        error: (error: unknown) => {
+          if (
+            missingTournamentOn404 &&
+            error instanceof HttpErrorResponse &&
+            error.status === 404
+          ) {
+            this.notFound.set(true);
+          } else {
+            this.failed.set(true);
+          }
+        },
+      });
   }
 }

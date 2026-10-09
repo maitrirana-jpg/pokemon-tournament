@@ -16,6 +16,11 @@ public sealed class TournamentController(TournamentService tournaments, RoundByR
             return Created($"/pokemon/tournament/{tournament.Id}", TournamentView.From(tournament));
         });
 
+    /// <summary>Every round-by-round Tournament run since the server started, newest first.</summary>
+    [HttpGet("history")]
+    public IReadOnlyList<HistoryEntry> GetHistory() =>
+        roundByRound.History().Select(HistoryEntry.From).ToList();
+
     /// <summary>A round-by-round Tournament's current state.</summary>
     [HttpGet("{id:guid}")]
     public ActionResult<TournamentView> GetTournament(Guid id) =>

@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
 import { RoundByRoundPage } from './round-by-round-page';
 import { Battle, RoundPlayedView, TournamentView } from '../round-by-round-api';
 
@@ -253,5 +254,75 @@ describe('RoundByRoundPage', () => {
     expect(detail).toContain('Base experience 100');
     expect(detail).toContain('pokemon-1 wins');
     expect(detail).toContain('Type advantage');
+  });
+
+  it('links to the history of past Tournaments', async () => {
+    const { page } = await open();
+
+    expect(byTestId(page, 'history')!.getAttribute('href')).toBe('/history');
+  });
+
+  async function openAt(url: string) {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([{ path: 'tournament/:id', component: RoundByRoundPage }]),
+      ],
+    });
+    http = TestBed.inject(HttpTestingController);
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl(url, RoundByRoundPage);
+    return harness;
+  }
+
+  it('resumes a stored Tournament and lets Process Round continue it', async () => {
+    const harness = await openAt(`/tournament/${startedTournament.id}`);
+    http
+      .expectOne(`/pokemon/tournament/${startedTournament.id}`)
+      .flush({ ...startedTournament, roundsPlayed: 1 });
+    harness.detectChanges();
+    await harness.fixture.whenStable();
+    const page = harness.routeNativeElement!;
+
+    expect(byTestId(page, 'round-counter')!.textContent!.trim()).toBe('Round 1 of 15');
+    expect(allByTestId(page, 'contender-card')).toHaveLength(16);
+
+    byTestId(page, 'process')!.click();
+    http.expectOne(`/pokemon/tournament/${startedTournament.id}/rounds`).flush({
+      ...roundOne(),
+      round: { ...roundOne().round, number: 2 },
+      roundsPlayed: 2,
+    });
+    await harness.fixture.whenStable();
+
+    expect(byTestId(page, 'round-counter')!.textContent!.trim()).toBe('Round 2 of 15');
+  });
+
+  it('says so when the Tournament to resume does not exist', async () => {
+    const harness = await openAt('/tournament/unknown-id');
+    http
+      .expectOne('/pokemon/tournament/unknown-id')
+      .flush({ error: 'tournament not found' }, { status: 404, statusText: 'Not Found' });
+    harness.detectChanges();
+    await harness.fixture.whenStable();
+    const page = harness.routeNativeElement!;
+
+    expect(byTestId(page, 'not-found')).not.toBeNull();
+    expect(byTestId(page, 'error-card')).toBeNull();
+  });
+
+  it('treats a missing Round as an error, not as a missing Tournament', async () => {
+    const { fixture, page } = await openAfterTwoRounds();
+
+    allByTestId(page, 'round-pick')[0].click();
+    http
+      .expectOne(`/pokemon/tournament/${startedTournament.id}/rounds/1`)
+      .flush({ error: 'round not found' }, { status: 404, statusText: 'Not Found' });
+    await fixture.whenStable();
+
+    expect(byTestId(page, 'not-found')).toBeNull();
+    expect(byTestId(page, 'error-card')).not.toBeNull();
   });
 });

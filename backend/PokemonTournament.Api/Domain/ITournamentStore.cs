@@ -8,4 +8,7 @@ public interface ITournamentStore
 
     /// <summary>The Tournament with this id, or null if there is none.</summary>
     RoundByRoundTournament? Find(Guid id);
+
+    /// <summary>Every Tournament kept so far, newest first.</summary>
+    IReadOnlyList<RoundByRoundTournament> All();
 }

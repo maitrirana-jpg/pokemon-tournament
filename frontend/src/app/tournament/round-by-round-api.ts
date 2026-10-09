@@ -38,6 +38,16 @@ export interface RoundPlayedView {
   status: TournamentStatus;
 }
 
+/** One Tournament in the history list. */
+export interface HistoryEntry {
+  id: string;
+  startedAt: string;
+  roundsPlayed: number;
+  totalRounds: number;
+  status: TournamentStatus;
+  leader: { id: number; name: string; wins: number } | null;
+}
+
 /** A round-by-round Tournament, as returned by the API. */
 export interface TournamentView {
   id: string;
@@ -71,5 +81,15 @@ export class RoundByRoundApiService {
   /** A Battle already played, for review. */
   getBattle(tournamentId: string, battleId: number): Observable<Battle> {
     return this.http.get<Battle>(`/pokemon/tournament/${tournamentId}/battles/${battleId}`);
+  }
+
+  /** A stored Tournament's current state, to review or resume it. */
+  getTournament(tournamentId: string): Observable<TournamentView> {
+    return this.http.get<TournamentView>(`/pokemon/tournament/${tournamentId}`);
+  }
+
+  /** Every Tournament run since the server started, newest first. */
+  history(): Observable<HistoryEntry[]> {
+    return this.http.get<HistoryEntry[]>('/pokemon/tournament/history');
   }
 }

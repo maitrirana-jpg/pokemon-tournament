@@ -1,0 +1,53 @@
+<main class="container py-4" style="max-width: 48rem">
+  <header class="d-flex align-items-center justify-content-between mb-3">
+    <h1 class="h3 fw-bold mb-0">Tournament history</h1>
+    <a class="btn btn-outline-secondary" routerLink="/">Back to Tournament</a>
+  </header>
+
+  @if (failed()) {
+    <p class="text-danger text-center py-5" data-testid="history-error">
+      The history couldn't be loaded. Please refresh to try again.
+    </p>
+  } @else if (entries(); as list) {
+    @if (list.length === 0) {
+      <p class="text-body-secondary text-center py-5" data-testid="history-empty">
+        No Tournaments yet. Start one to see it here.
+      </p>
+    } @else {
+      <div class="list-group shadow-sm">
+        @for (entry of list; track entry.id) {
+          <a
+            class="list-group-item list-group-item-action d-flex flex-wrap justify-content-between gap-2"
+            [routerLink]="['/tournament', entry.id]"
+            data-testid="history-entry"
+          >
+            <span>
+              <span class="fw-semibold">{{ entry.startedAt | date: 'medium' }}</span>
+              <span class="text-body-secondary">
+                · Round {{ entry.roundsPlayed }} of {{ entry.totalRounds }}</span
+              >
+            </span>
+            <span class="d-flex gap-2 align-items-center">
+              @if (entry.leader; as leader) {
+                <span>{{ leader.name }} ({{ leader.wins }} wins)</span>
+              } @else {
+                <span class="text-body-secondary">No leader yet</span>
+              }
+              @if (entry.status === 'complete') {
+                <span class="badge text-bg-success">Complete</span>
+              } @else {
+                <span class="badge text-bg-primary">In progress</span>
+              }
+            </span>
+          </a>
+        }
+      </div>
+    }
+  } @else {
+    <div class="d-flex justify-content-center py-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading history…</span>
+      </div>
+    </div>
+  }
+</main>
