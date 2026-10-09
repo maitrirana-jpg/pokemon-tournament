@@ -1,6 +1,64 @@
 <main class="container py-4">
   <h1 class="h3 text-center mb-4">Pokémon League</h1>
 
+  <div class="d-flex flex-wrap align-items-end gap-3 mb-4">
+    <div>
+      <label class="form-label small" for="sort-field">Sort by</label>
+      <select
+        id="sort-field"
+        class="form-select"
+        data-testid="sort-field"
+        #field
+        [value]="sortField()"
+        (change)="changeSortField(field.value)"
+      >
+        <option value="wins">Wins</option>
+        <option value="losses">Losses</option>
+        <option value="ties">Ties</option>
+        <option value="name">Name</option>
+        <option value="id">ID</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label small" for="sort-direction">Direction</label>
+      <select
+        id="sort-direction"
+        class="form-select"
+        data-testid="sort-direction"
+        #direction
+        [value]="sortDirection()"
+        (change)="changeSortDirection(direction.value)"
+      >
+        <option value="asc">Ascending</option>
+        <option value="desc">Descending</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label small" for="page-size">Per page</label>
+      <select
+        id="page-size"
+        class="form-select"
+        data-testid="page-size"
+        #size
+        [value]="pageSize()"
+        (change)="changePageSize(size.value)"
+      >
+        <option value="4">4</option>
+        <option value="8">8</option>
+        <option value="16">16</option>
+      </select>
+    </div>
+    <button
+      type="button"
+      class="btn btn-primary ms-auto"
+      data-testid="new-tournament"
+      [disabled]="loading()"
+      (click)="play()"
+    >
+      New tournament
+    </button>
+  </div>
+
   @if (loading()) {
     <div class="d-flex justify-content-center py-5" data-testid="loading">
       <div class="spinner-border text-primary" role="status">
@@ -8,30 +66,67 @@
       </div>
     </div>
   } @else if (failed()) {
-    <div class="card border-danger mx-auto text-center" style="max-width: 28rem" data-testid="error-card">
+    <div
+      class="card border-danger mx-auto text-center"
+      style="max-width: 28rem"
+      data-testid="error-card"
+    >
       <div class="card-body">
         <h2 class="h5 card-title">The Tournament couldn't be played</h2>
-        <p class="card-text text-body-secondary">PokéAPI isn't answering right now. Please try again.</p>
+        <p class="card-text text-body-secondary">
+          PokéAPI isn't answering right now. Please try again.
+        </p>
         <button type="button" class="btn btn-primary" (click)="play()">Try again</button>
       </div>
     </div>
   } @else {
     <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3">
-      @for (contender of contenders(); track contender.id) {
+      @for (contender of visibleContenders(); track contender.id) {
         <div class="col">
           <div class="card h-100 shadow-sm" data-testid="contender-card">
             <div class="card-body">
               <span class="badge text-bg-secondary mb-2">{{ contender.type }}</span>
               <h2 class="h5 card-title text-capitalize mb-3">{{ contender.name }}</h2>
               <div class="d-flex justify-content-between text-center small">
-                <div><div class="text-body-secondary">Wins</div><strong>{{ contender.wins }}</strong></div>
-                <div><div class="text-body-secondary">Losses</div><strong>{{ contender.losses }}</strong></div>
-                <div><div class="text-body-secondary">Ties</div><strong>{{ contender.ties }}</strong></div>
+                <div>
+                  <div class="text-body-secondary">Wins</div>
+                  <strong>{{ contender.wins }}</strong>
+                </div>
+                <div>
+                  <div class="text-body-secondary">Losses</div>
+                  <strong>{{ contender.losses }}</strong>
+                </div>
+                <div>
+                  <div class="text-body-secondary">Ties</div>
+                  <strong>{{ contender.ties }}</strong>
+                </div>
               </div>
             </div>
           </div>
         </div>
       }
     </div>
+
+    <nav class="d-flex justify-content-center align-items-center gap-3 mt-4" aria-label="Pages">
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        data-testid="previous"
+        [disabled]="pageNumber() === 1"
+        (click)="pageNumber.set(pageNumber() - 1)"
+      >
+        Previous
+      </button>
+      <span data-testid="page-indicator">Page {{ pageNumber() }} of {{ pageCount() }}</span>
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        data-testid="next"
+        [disabled]="pageNumber() === pageCount()"
+        (click)="pageNumber.set(pageNumber() + 1)"
+      >
+        Next
+      </button>
+    </nav>
   }
 </main>
