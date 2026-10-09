@@ -148,6 +148,38 @@ describe('StatisticsPage', () => {
     });
   }
 
+  it('shows the header and footer text from the mockup', async () => {
+    const { page } = await openWithResults();
+    const squash = (s: string) => s.replace(/\s+/g, ' ');
+
+    expect(page.querySelector('header')!.textContent).toContain('Tournament Statistics');
+    expect(text(page, 'title')).toBe('Pokémon League');
+    expect(squash(text(page, 'description'))).toBe(
+      'Explore performance statistics from the latest Pokémon tournament. ' +
+        "Sort by different metrics to see who's leading the competition.",
+    );
+    expect(text(page, 'footer')).toBe('Data refreshes automatically based on tournament results');
+  });
+
+  it('awards medals by wins-rank whatever the sort', async () => {
+    const { fixture, page } = await openWithResults();
+    choose(page, 'page-size', '16');
+    choose(page, 'sort-field', 'name');
+    await fixture.whenStable();
+
+    const medals = new Map(
+      Array.from(page.querySelectorAll('[data-testid="contender-card"]'), (card) => [
+        card.querySelector('h2')!.textContent!.trim(),
+        card.querySelector('[data-testid="medal"]')?.textContent!.trim() ?? null,
+      ]),
+    );
+
+    expect(medals.get('pokemon-3')).toBe('🏆');
+    expect(medals.get('pokemon-4')).toBe('🥈');
+    expect(medals.get('pokemon-12')).toBe('🥉');
+    expect(medals.get('pokemon-13')).toBeNull();
+  });
+
   it('plays exactly one new Tournament on "New tournament", keeping the selected sort', async () => {
     const { fixture, page } = await openWithResults();
     choose(page, 'sort-field', 'id');

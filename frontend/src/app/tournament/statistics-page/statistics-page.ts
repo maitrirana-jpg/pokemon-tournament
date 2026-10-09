@@ -1,13 +1,17 @@
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize } from 'rxjs';
+import { ContenderCard } from '../contender-card/contender-card';
+import { medalFor } from '../contender-display';
 import { ContenderRecord, SortDirection, SortField } from '../contender-record';
 import { sortContenders } from '../sort-contenders';
 import { TournamentApi } from '../tournament-api';
 
 @Component({
   selector: 'app-statistics-page',
+  imports: [ContenderCard],
   templateUrl: './statistics-page.html',
+  styleUrl: './statistics-page.scss',
 })
 export class StatisticsPage implements OnInit {
   private readonly api = inject(TournamentApi);
@@ -25,12 +29,12 @@ export class StatisticsPage implements OnInit {
   protected readonly pageCount = computed(() =>
     Math.max(1, Math.ceil(this.contenders().length / this.pageSize())),
   );
-  protected readonly visibleContenders = computed(() => {
+  protected readonly visibleCards = computed(() => {
     const start = (this.pageNumber() - 1) * this.pageSize();
-    return sortContenders(this.contenders(), this.sortField(), this.sortDirection()).slice(
-      start,
-      start + this.pageSize(),
-    );
+    const allWins = this.contenders().map((c) => c.wins);
+    return sortContenders(this.contenders(), this.sortField(), this.sortDirection())
+      .slice(start, start + this.pageSize())
+      .map((contender) => ({ contender, medal: medalFor(contender.wins, allWins) }));
   });
 
   ngOnInit(): void {

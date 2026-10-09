@@ -1,7 +1,18 @@
 <main class="container py-4">
-  <h1 class="h3 text-center mb-4">Pokémon League</h1>
+  <header class="card border-0 shadow-sm text-center mb-3">
+    <div class="card-body py-4">
+      <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis fw-normal mb-2">
+        Tournament Statistics
+      </span>
+      <h1 class="h2 fw-bold mb-2" data-testid="title">Pokémon League</h1>
+      <p class="description text-body-secondary mx-auto mb-0" data-testid="description">
+        Explore performance statistics from the latest Pokémon tournament. Sort by different metrics
+        to see who's leading the competition.
+      </p>
+    </div>
+  </header>
 
-  <div class="d-flex flex-wrap align-items-end gap-3 mb-4">
+  <div class="card border-0 shadow-sm p-3 mb-3 flex-row flex-wrap align-items-end gap-3">
     <div>
       <label class="form-label small" for="sort-field">Sort by</label>
       <select
@@ -80,29 +91,10 @@
       </div>
     </div>
   } @else {
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3">
-      @for (contender of visibleContenders(); track contender.id) {
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3" data-testid="contender-grid">
+      @for (card of visibleCards(); track card.contender.id) {
         <div class="col">
-          <div class="card h-100 shadow-sm" data-testid="contender-card">
-            <div class="card-body">
-              <span class="badge text-bg-secondary mb-2">{{ contender.type }}</span>
-              <h2 class="h5 card-title text-capitalize mb-3">{{ contender.name }}</h2>
-              <div class="d-flex justify-content-between text-center small">
-                <div>
-                  <div class="text-body-secondary">Wins</div>
-                  <strong>{{ contender.wins }}</strong>
-                </div>
-                <div>
-                  <div class="text-body-secondary">Losses</div>
-                  <strong>{{ contender.losses }}</strong>
-                </div>
-                <div>
-                  <div class="text-body-secondary">Ties</div>
-                  <strong>{{ contender.ties }}</strong>
-                </div>
-              </div>
-            </div>
-          </div>
+          <app-contender-card [contender]="card.contender" [medal]="card.medal" />
         </div>
       }
     </div>
@@ -129,4 +121,10 @@
       </button>
     </nav>
   }
+
+  <footer class="card border-0 shadow-sm text-center small text-body-secondary mt-4">
+    <div class="card-body py-2" data-testid="footer">
+      Data refreshes automatically based on tournament results
+    </div>
+  </footer>
 </main>
