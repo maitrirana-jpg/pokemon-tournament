@@ -7,18 +7,43 @@ namespace PokemonTournament.Api.Controllers;
 [Route("pokemon/tournament")]
 public sealed class TournamentController(TournamentService tournaments) : ControllerBase
 {
+    // Names compare by code point, not by the server's culture.
+    private static readonly Comparer<IComparable> OrdinalComparer = Comparer<IComparable>.Create((a, b) =>
+        a is string x && b is string y ? string.CompareOrdinal(x, y) : a.CompareTo(b));
+
     [HttpGet("statistics")]
     public async Task<ActionResult<IReadOnlyList<ContenderRecord>>> GetStatistics(
         [FromQuery] string? sortBy,
         [FromQuery] string? sortDirection,
         CancellationToken cancellationToken)
     {
+        if (string.IsNullOrEmpty(sortBy))
+            return BadRequest(new { error = "sortBy parameter is required" });
+
+        Func<ContenderRecord, IComparable>? sortKey = sortBy.ToLowerInvariant() switch
+        {
+            "wins" => r => r.Wins,
+            "losses" => r => r.Losses,
+            "ties" => r => r.Ties,
+            "name" => r => r.Name,
+            "id" => r => r.Id,
+            _ => null,
+        };
+        if (sortKey is null)
+            return BadRequest(new { error = "sortBy parameter is invalid" });
+
+        bool? descending = sortDirection?.ToLowerInvariant() switch
+        {
+            null or "asc" => false,
+            "desc" => true,
+            _ => null,
+        };
+        if (descending is null)
+            return BadRequest(new { error = "sortDirection parameter is invalid" });
+
         var records = await tournaments.PlayAsync(cancellationToken);
 
-        // Only wins for now; the full sorting and validation contract comes with #3.
-        var descending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
-        return Ok(descending
-            ? records.OrderByDescending(r => r.Wins).ToList()
-            : records.OrderBy(r => r.Wins).ToList());
+        var sorted = descending.Value ? records.OrderByDescending(sortKey, OrdinalComparer) : records.OrderBy(sortKey, OrdinalComparer);
+        return Ok(sorted.ThenBy(r => r.Id).ToList());
     }
 }
