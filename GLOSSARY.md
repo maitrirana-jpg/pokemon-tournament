@@ -6,7 +6,7 @@ Pokémon drawn from the original 151 compete in a round-robin, and their results
 
 **Tournament**:
 A single competition between 16 distinct Pokémon in which every Pokémon battles every other Pokémon exactly once, for 120 Battles in total.
-_Avoid_: League, competition, game
+_Avoid_: League, competition, game ("Pokémon League" survives only as the on-screen product title from the design mockup)
 
 **Contender**:
 One of the 16 Pokémon taking part in a Tournament.

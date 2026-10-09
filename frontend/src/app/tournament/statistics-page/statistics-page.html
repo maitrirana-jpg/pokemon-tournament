@@ -1,0 +1,21 @@
+<main class="container py-4">
+  <h1 class="h3 text-center mb-4">Pokémon League</h1>
+
+  <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-3">
+    @for (contender of contenders(); track contender.id) {
+      <div class="col">
+        <div class="card h-100 shadow-sm" data-testid="contender-card">
+          <div class="card-body">
+            <span class="badge text-bg-secondary mb-2">{{ contender.type }}</span>
+            <h2 class="h5 card-title text-capitalize mb-3">{{ contender.name }}</h2>
+            <div class="d-flex justify-content-between text-center small">
+              <div><div class="text-body-secondary">Wins</div><strong>{{ contender.wins }}</strong></div>
+              <div><div class="text-body-secondary">Losses</div><strong>{{ contender.losses }}</strong></div>
+              <div><div class="text-body-secondary">Ties</div><strong>{{ contender.ties }}</strong></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</main>
