@@ -22,4 +22,7 @@ public sealed class RoundByRoundService(
     /// <exception cref="TournamentCompleteException">Every Round has been played.</exception>
     public RoundPlayed? PlayNextRound(Guid id) =>
         store.Find(id)?.PlayNextRound(battles);
+
+    /// <summary>Every Tournament started since the server came up, newest first.</summary>
+    public IReadOnlyList<RoundByRoundTournament> History() => store.All();
 }

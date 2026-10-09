@@ -56,6 +56,17 @@
         <span class="visually-hidden">Working…</span>
       </div>
     </div>
+  } @else if (notFound()) {
+    <div class="card mx-auto text-center" style="max-width: 28rem" data-testid="not-found">
+      <div class="card-body">
+        <h2 class="h5 card-title">Tournament not found</h2>
+        <p class="card-text text-body-secondary">
+          It may have been run before the server last restarted. Start a new one, or pick one from
+          the history.
+        </p>
+        <a class="btn btn-outline-primary" routerLink="/history">Tournament history</a>
+      </div>
+    </div>
   } @else if (failed()) {
     <div
       class="card border-danger mx-auto text-center"
@@ -155,7 +166,10 @@
     </div>
   }
 
-  <footer class="text-center mt-4">
+  <footer class="d-flex justify-content-center gap-2 mt-4">
+    <a class="btn btn-outline-secondary" routerLink="/history" data-testid="history">
+      Tournament history
+    </a>
     <a class="btn btn-outline-secondary" routerLink="/classic" data-testid="classic-view">
       Classic view
     </a>

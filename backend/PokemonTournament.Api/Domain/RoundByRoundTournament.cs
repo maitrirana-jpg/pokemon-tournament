@@ -61,6 +61,9 @@ public sealed class RoundByRoundTournament(Guid id, DateTimeOffset startedAt, IR
         lock (_gate) return _rounds.SelectMany(r => r.Battles).FirstOrDefault(b => b.Id == battleId);
     }
 
+    /// <summary>The Contender topping the standings, or null before the first Round.</summary>
+    public ContenderRecord? Leader() => RoundsPlayed == 0 ? null : Standings()[0];
+
     /// <summary>Every Contender's Record so far, by wins descending then id ascending.</summary>
     public IReadOnlyList<ContenderRecord> Standings()
     {
