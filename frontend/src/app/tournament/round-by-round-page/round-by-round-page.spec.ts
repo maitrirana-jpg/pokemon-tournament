@@ -225,12 +225,41 @@ describe('RoundByRoundPage', () => {
     return opened;
   }
 
+  function roundStrip(page: HTMLElement) {
+    const picks = allByTestId(page, 'round-pick') as HTMLButtonElement[];
+    return {
+      numbers: picks.map((p) => p.textContent!.trim()),
+      played: picks.filter((p) => !p.disabled).map((p) => p.textContent!.trim()),
+      current: picks
+        .filter((p) => p.getAttribute('aria-current') === 'true')
+        .map((p) => p.textContent!.trim()),
+      left: byTestId(page, 'rounds-left')!.textContent!.trim(),
+    };
+  }
+
+  it('shows all 15 Rounds as left to play right after Start', async () => {
+    const { page } = await openStarted();
+
+    const strip = roundStrip(page);
+    expect(strip.numbers).toEqual(Array.from({ length: 15 }, (_, i) => `${i + 1}`));
+    expect(strip.played).toEqual([]);
+    expect(strip.left).toBe('15 Rounds left');
+  });
+
+  it('shows every Round number, with played ones open and the newest selected', async () => {
+    const { page } = await openAfterTwoRounds();
+
+    const strip = roundStrip(page);
+    expect(strip.numbers).toHaveLength(15);
+    expect(strip.played).toEqual(['1', '2']);
+    expect(strip.current).toEqual(['2']);
+    expect(strip.left).toBe('13 Rounds left');
+  });
+
   it('lets the user pick any played Round to review its Battles', async () => {
     const { fixture, page } = await openAfterTwoRounds();
 
     const picks = allByTestId(page, 'round-pick');
-    expect(picks.map((p) => p.textContent!.trim())).toEqual(['1', '2']);
-
     picks[0].click();
     http.expectOne(`/pokemon/tournament/${startedTournament.id}/rounds/1`).flush(roundOne().round);
     await fixture.whenStable();
@@ -282,12 +311,17 @@ describe('RoundByRoundPage', () => {
     http
       .expectOne(`/pokemon/tournament/${startedTournament.id}`)
       .flush({ ...startedTournament, roundsPlayed: 1 });
+    // The newest Round played is shown straight away.
+    http.expectOne(`/pokemon/tournament/${startedTournament.id}/rounds/1`).flush(roundOne().round);
     harness.detectChanges();
     await harness.fixture.whenStable();
     const page = harness.routeNativeElement!;
 
     expect(byTestId(page, 'round-counter')!.textContent!.trim()).toBe('Round 1 of 15');
     expect(allByTestId(page, 'contender-card')).toHaveLength(16);
+    expect(byTestId(page, 'round')!.querySelector('h2')!.textContent!.trim()).toBe('Round 1');
+    expect(allByTestId(page, 'battle')).toHaveLength(8);
+    expect(byTestId<HTMLButtonElement>(page, 'process')!.disabled).toBe(false);
 
     byTestId(page, 'process')!.click();
     http.expectOne(`/pokemon/tournament/${startedTournament.id}/rounds`).flush({
@@ -324,5 +358,22 @@ describe('RoundByRoundPage', () => {
 
     expect(byTestId(page, 'not-found')).toBeNull();
     expect(byTestId(page, 'error-card')).not.toBeNull();
+  });
+
+  it('still shows a resumed Tournament when its newest Round cannot be loaded', async () => {
+    const harness = await openAt(`/tournament/${startedTournament.id}`);
+    http
+      .expectOne(`/pokemon/tournament/${startedTournament.id}`)
+      .flush({ ...startedTournament, roundsPlayed: 1 });
+    http
+      .expectOne(`/pokemon/tournament/${startedTournament.id}/rounds/1`)
+      .flush({ error: 'round not found' }, { status: 404, statusText: 'Not Found' });
+    harness.detectChanges();
+    await harness.fixture.whenStable();
+    const page = harness.routeNativeElement!;
+
+    expect(byTestId(page, 'not-found')).toBeNull();
+    expect(byTestId(page, 'round-counter')!.textContent!.trim()).toBe('Round 1 of 15');
+    expect(allByTestId(page, 'contender-card')).toHaveLength(16);
   });
 });
