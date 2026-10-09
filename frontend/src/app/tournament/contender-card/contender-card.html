@@ -1,0 +1,47 @@
+@let record = contender();
+<div class="card h-100 border-0 shadow-sm" data-testid="contender-card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start mb-3">
+      <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge fw-normal" [style.background-color]="typeColour()">
+            {{ record.type }}
+          </span>
+          @if (medal(); as medal) {
+            <span data-testid="medal">{{ medal }}</span>
+          }
+        </div>
+        <h2 class="h5 fw-bold text-capitalize mb-0">{{ record.name }}</h2>
+        <small class="text-body-tertiary">{{ paddedId() }}</small>
+      </div>
+      <div class="sprite rounded-circle bg-body-tertiary flex-shrink-0">
+        <img [src]="spriteUrl()" [alt]="record.name" width="64" height="64" />
+      </div>
+    </div>
+
+    <div class="row g-2 mb-3">
+      <app-stat-tile class="col-4" label="Wins" [value]="record.wins" tone="success" />
+      <app-stat-tile class="col-4" label="Losses" [value]="record.losses" tone="danger" />
+      <app-stat-tile class="col-4" label="Ties" [value]="record.ties" tone="primary" />
+    </div>
+
+    <div class="d-flex justify-content-between small text-body-secondary mb-1">
+      <span>Win rate</span>
+      <span>{{ winRate() }}%</span>
+    </div>
+    <div
+      class="progress"
+      role="progressbar"
+      aria-label="Win rate"
+      [attr.aria-valuenow]="winRate()"
+      aria-valuemin="0"
+      aria-valuemax="100"
+    >
+      <div
+        class="progress-bar rounded-pill"
+        [class.bg-success]="winRate() >= 75"
+        [style.width.%]="winRate()"
+      ></div>
+    </div>
+  </div>
+</div>

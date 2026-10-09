@@ -1,0 +1,130 @@
+<main class="container py-4">
+  <header class="card border-0 shadow-sm text-center mb-3">
+    <div class="card-body py-4">
+      <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis fw-normal mb-2">
+        Tournament Statistics
+      </span>
+      <h1 class="h2 fw-bold mb-2" data-testid="title">Pokémon League</h1>
+      <p class="description text-body-secondary mx-auto mb-0" data-testid="description">
+        Explore performance statistics from the latest Pokémon tournament. Sort by different metrics
+        to see who's leading the competition.
+      </p>
+    </div>
+  </header>
+
+  <div class="card border-0 shadow-sm p-3 mb-3 flex-row flex-wrap align-items-end gap-3">
+    <div>
+      <label class="form-label small" for="sort-field">Sort by</label>
+      <select
+        id="sort-field"
+        class="form-select"
+        data-testid="sort-field"
+        #field
+        [value]="sortField()"
+        (change)="changeSortField(field.value)"
+      >
+        <option value="wins">Wins</option>
+        <option value="losses">Losses</option>
+        <option value="ties">Ties</option>
+        <option value="name">Name</option>
+        <option value="id">ID</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label small" for="sort-direction">Direction</label>
+      <select
+        id="sort-direction"
+        class="form-select"
+        data-testid="sort-direction"
+        #direction
+        [value]="sortDirection()"
+        (change)="changeSortDirection(direction.value)"
+      >
+        <option value="asc">Ascending</option>
+        <option value="desc">Descending</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label small" for="page-size">Per page</label>
+      <select
+        id="page-size"
+        class="form-select"
+        data-testid="page-size"
+        #size
+        [value]="pageSize()"
+        (change)="changePageSize(size.value)"
+      >
+        <option value="4">4</option>
+        <option value="8">8</option>
+        <option value="16">16</option>
+      </select>
+    </div>
+    <button
+      type="button"
+      class="btn btn-primary ms-auto"
+      data-testid="new-tournament"
+      [disabled]="loading()"
+      (click)="play()"
+    >
+      New tournament
+    </button>
+  </div>
+
+  @if (loading()) {
+    <div class="d-flex justify-content-center py-5" data-testid="loading">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Playing the Tournament…</span>
+      </div>
+    </div>
+  } @else if (failed()) {
+    <div
+      class="card border-danger mx-auto text-center"
+      style="max-width: 28rem"
+      data-testid="error-card"
+    >
+      <div class="card-body">
+        <h2 class="h5 card-title">The Tournament couldn't be played</h2>
+        <p class="card-text text-body-secondary">
+          PokéAPI isn't answering right now. Please try again.
+        </p>
+        <button type="button" class="btn btn-primary" (click)="play()">Try again</button>
+      </div>
+    </div>
+  } @else {
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3" data-testid="contender-grid">
+      @for (card of visibleCards(); track card.contender.id) {
+        <div class="col">
+          <app-contender-card [contender]="card.contender" [medal]="card.medal" />
+        </div>
+      }
+    </div>
+
+    <nav class="d-flex justify-content-center align-items-center gap-3 mt-4" aria-label="Pages">
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        data-testid="previous"
+        [disabled]="pageNumber() === 1"
+        (click)="pageNumber.set(pageNumber() - 1)"
+      >
+        Previous
+      </button>
+      <span data-testid="page-indicator">Page {{ pageNumber() }} of {{ pageCount() }}</span>
+      <button
+        type="button"
+        class="btn btn-outline-secondary"
+        data-testid="next"
+        [disabled]="pageNumber() === pageCount()"
+        (click)="pageNumber.set(pageNumber() + 1)"
+      >
+        Next
+      </button>
+    </nav>
+  }
+
+  <footer class="card border-0 shadow-sm text-center small text-body-secondary mt-4">
+    <div class="card-body py-2" data-testid="footer">
+      Data refreshes automatically based on tournament results
+    </div>
+  </footer>
+</main>
