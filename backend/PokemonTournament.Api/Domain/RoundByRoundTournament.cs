@@ -49,6 +49,18 @@ public sealed class RoundByRoundTournament(Guid id, DateTimeOffset startedAt, IR
         }
     }
 
+    /// <summary>A played Round by number, or null if it hasn't been played.</summary>
+    public Round? FindRound(int number)
+    {
+        lock (_gate) return _rounds.FirstOrDefault(r => r.Number == number);
+    }
+
+    /// <summary>A played Battle by id, or null if it hasn't been played.</summary>
+    public Battle? FindBattle(int battleId)
+    {
+        lock (_gate) return _rounds.SelectMany(r => r.Battles).FirstOrDefault(b => b.Id == battleId);
+    }
+
     /// <summary>Every Contender's Record so far, by wins descending then id ascending.</summary>
     public IReadOnlyList<ContenderRecord> Standings()
     {

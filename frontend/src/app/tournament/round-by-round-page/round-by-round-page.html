@@ -17,6 +17,15 @@
         Round {{ t.roundsPlayed }} of {{ t.totalRounds }}
       </span>
     }
+    @if (loading() && tournament()) {
+      <span
+        class="spinner-border spinner-border-sm text-primary"
+        role="status"
+        data-testid="working"
+      >
+        <span class="visually-hidden">Working…</span>
+      </span>
+    }
     <div class="ms-auto d-flex gap-2">
       @if (tournament()) {
         <button
@@ -41,7 +50,7 @@
     </div>
   </div>
 
-  @if (loading()) {
+  @if (loading() && !tournament()) {
     <div class="d-flex justify-content-center py-5" data-testid="loading">
       <div class="spinner-border text-primary" role="status">
         <span class="visually-hidden">Working…</span>
@@ -56,21 +65,43 @@
       <div class="card-body">
         <h2 class="h5 card-title">Something went wrong</h2>
         <p class="card-text text-body-secondary">
-          The Tournament server or PokéAPI isn't answering right now. Please try again.
+          That didn't work. The Tournament server or PokéAPI may be down. Please try again.
         </p>
         <button type="button" class="btn btn-primary" (click)="tryAgain()">Try again</button>
       </div>
     </div>
   } @else if (tournament()) {
+    @if (playedRounds().length > 0) {
+      <nav class="d-flex flex-wrap align-items-center gap-1 mb-3" aria-label="Rounds played">
+        <span class="small text-body-secondary me-1">Review Round</span>
+        @for (number of playedRounds(); track number) {
+          <button
+            type="button"
+            class="btn btn-sm"
+            [class.btn-primary]="currentRound()?.number === number"
+            [class.btn-outline-primary]="currentRound()?.number !== number"
+            data-testid="round-pick"
+            [disabled]="loading()"
+            (click)="reviewRound(number)"
+          >
+            {{ number }}
+          </button>
+        }
+      </nav>
+    }
+
     @if (currentRound(); as round) {
       <section class="card border-0 shadow-sm mb-3" data-testid="round">
         <div class="card-body">
           <h2 class="h5 card-title">Round {{ round.number }}</h2>
-          <ul class="list-group list-group-flush">
+          <div class="list-group list-group-flush">
             @for (battle of round.battles; track battle.id) {
-              <li
-                class="list-group-item d-flex justify-content-between align-items-center"
+              <button
+                type="button"
+                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                 data-testid="battle"
+                [disabled]="loading()"
+                (click)="reviewBattle(battle.id)"
               >
                 <span>{{ battle.first.name }} vs {{ battle.second.name }}</span>
                 @if (winnerName(battle); as winner) {
@@ -78,9 +109,39 @@
                 } @else {
                   <span class="badge text-bg-secondary">Tie</span>
                 }
-              </li>
+              </button>
             }
-          </ul>
+          </div>
+        </div>
+      </section>
+    }
+
+    @if (selectedBattle(); as battle) {
+      <section class="card border-primary mb-3" data-testid="battle-detail">
+        <div class="card-body">
+          <h2 class="h6 card-title text-body-secondary">
+            Battle {{ battle.id }} · Round {{ battle.round }}
+          </h2>
+          <div class="row text-center align-items-center">
+            @for (side of [battle.first, battle.second]; track side.id; let last = $last) {
+              <div class="col">
+                <div class="fw-semibold">{{ side.name }}</div>
+                <div class="small text-body-secondary">{{ side.type }}</div>
+                <div class="small">Base experience {{ side.baseExperience }}</div>
+              </div>
+              @if (!last) {
+                <div class="col-auto text-body-secondary">vs</div>
+              }
+            }
+          </div>
+          <p class="text-center mt-3 mb-0">
+            @if (winnerName(battle); as winner) {
+              <strong>{{ winner }} wins</strong>
+            } @else {
+              <strong>Tie</strong>
+            }
+            <span class="text-body-secondary"> · {{ reasonLabel(battle) }}</span>
+          </p>
         </div>
       </section>
     }
