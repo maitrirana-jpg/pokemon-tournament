@@ -17,6 +17,9 @@ builder.Services.AddSingleton<IPokemonClient>(sp => new CachingPokemonClient(sp.
 builder.Services.AddSingleton<BattleService>();
 builder.Services.AddSingleton<RoundRobin>();
 builder.Services.AddScoped<TournamentService>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<ITournamentStore, InMemoryTournamentStore>();
+builder.Services.AddScoped<RoundByRoundService>();
 
 var app = builder.Build();
 

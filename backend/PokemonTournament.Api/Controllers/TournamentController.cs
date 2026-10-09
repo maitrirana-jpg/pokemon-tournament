@@ -5,8 +5,24 @@ namespace PokemonTournament.Api.Controllers;
 
 [ApiController]
 [Route("pokemon/tournament")]
-public sealed class TournamentController(TournamentService tournaments) : ControllerBase
+public sealed class TournamentController(TournamentService tournaments, RoundByRoundService roundByRound) : ControllerBase
 {
+    /// <summary>Starts a round-by-round Tournament with 16 Contenders and no Rounds played.</summary>
+    [HttpPost]
+    public Task<ActionResult> Start(CancellationToken cancellationToken) =>
+        WhenPokeApiAnswers(async () =>
+        {
+            var tournament = await roundByRound.StartAsync(cancellationToken);
+            return Created($"/pokemon/tournament/{tournament.Id}", TournamentView.From(tournament));
+        });
+
+    /// <summary>A round-by-round Tournament's current state.</summary>
+    [HttpGet("{id:guid}")]
+    public ActionResult<TournamentView> GetTournament(Guid id) =>
+        roundByRound.Find(id) is { } tournament
+            ? TournamentView.From(tournament)
+            : NotFound(new { error = "tournament not found" });
+
     [HttpGet("statistics")]
     public async Task<ActionResult<IReadOnlyList<ContenderRecord>>> GetStatistics(
         [FromQuery] string? sortBy,
@@ -37,9 +53,15 @@ public sealed class TournamentController(TournamentService tournaments) : Contro
         if (direction is null)
             return BadRequest(new { error = "sortDirection parameter is invalid" });
 
+        return await WhenPokeApiAnswers(async () => Ok(await tournaments.PlayAsync(field.Value, direction.Value, cancellationToken)));
+    }
+
+    /// <summary>Runs an action that fetches from PokéAPI, mapping a timeout to 504 and any other failure to 502.</summary>
+    private async Task<ActionResult> WhenPokeApiAnswers(Func<Task<ActionResult>> action)
+    {
         try
         {
-            return Ok(await tournaments.PlayAsync(field.Value, direction.Value, cancellationToken));
+            return await action();
         }
         catch (PokemonSourceTimeoutException)
         {
