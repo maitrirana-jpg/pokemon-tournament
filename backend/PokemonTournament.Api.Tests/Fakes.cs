@@ -42,3 +42,40 @@ internal static class SampleContenders
 
     public static IReadOnlyList<int> Ids => Sixteen.Select(p => p.Id).ToArray();
 }
+
+/// <summary>Stands in for a PokéAPI that fails every request.</summary>
+internal sealed class FailingPokemonClient(Exception error) : IPokemonClient
+{
+    public Task<Pokemon> GetAsync(int id, CancellationToken cancellationToken) => Task.FromException<Pokemon>(error);
+}
+
+/// <summary>Holds every answer until <paramref name="expected"/> requests are in flight at once, so only parallel callers succeed.</summary>
+internal sealed class GatedPokemonClient(IEnumerable<Pokemon> pokemon, int expected) : IPokemonClient
+{
+    private readonly FakePokemonClient _inner = new(pokemon);
+    private readonly TaskCompletionSource _allInFlight = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private int _inFlight;
+
+    public async Task<Pokemon> GetAsync(int id, CancellationToken cancellationToken)
+    {
+        if (Interlocked.Increment(ref _inFlight) == expected)
+            _allInFlight.SetResult();
+
+        await _allInFlight.Task.WaitAsync(TimeSpan.FromSeconds(2), cancellationToken);
+        return await _inner.GetAsync(id, cancellationToken);
+    }
+}
+
+/// <summary>Counts how many requests reach the wrapped client.</summary>
+internal sealed class CountingPokemonClient(IPokemonClient inner) : IPokemonClient
+{
+    private int _calls;
+
+    public int Calls => _calls;
+
+    public Task<Pokemon> GetAsync(int id, CancellationToken cancellationToken)
+    {
+        Interlocked.Increment(ref _calls);
+        return inner.GetAsync(id, cancellationToken);
+    }
+}

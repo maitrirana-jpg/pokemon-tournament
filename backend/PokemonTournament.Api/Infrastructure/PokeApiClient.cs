@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using PokemonTournament.Api.Domain;
 
@@ -8,8 +9,23 @@ public sealed class PokeApiClient(HttpClient http) : IPokemonClient
 {
     public async Task<Pokemon> GetAsync(int id, CancellationToken cancellationToken)
     {
-        var dto = await http.GetFromJsonAsync<PokemonDto>($"pokemon/{id}", cancellationToken)
-            ?? throw new InvalidOperationException($"PokéAPI returned no body for Pokémon {id}.");
+        PokemonDto? dto;
+        try
+        {
+            dto = await http.GetFromJsonAsync<PokemonDto>($"pokemon/{id}", cancellationToken);
+        }
+        // HttpClient.Timeout surfaces as a cancellation the caller did not ask for.
+        catch (OperationCanceledException e) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new PokemonSourceTimeoutException($"PokéAPI did not respond in time for Pokémon {id}.", e);
+        }
+        catch (Exception e) when (e is HttpRequestException or IOException or JsonException or NotSupportedException)
+        {
+            throw new PokemonSourceException($"PokéAPI request for Pokémon {id} failed.", e);
+        }
+
+        if (dto is null || dto.Types is not { Count: > 0 })
+            throw new PokemonSourceException($"PokéAPI returned no usable body for Pokémon {id}.");
 
         var primaryType = dto.Types.OrderBy(t => t.Slot).First().Type.Name;
         return new Pokemon(dto.Id, dto.Name, primaryType, dto.BaseExperience ?? 0);
@@ -19,7 +35,7 @@ public sealed class PokeApiClient(HttpClient http) : IPokemonClient
         int Id,
         string Name,
         [property: JsonPropertyName("base_experience")] int? BaseExperience,
-        IReadOnlyList<TypeSlotDto> Types);
+        IReadOnlyList<TypeSlotDto>? Types);
 
     private sealed record TypeSlotDto(int Slot, NamedResourceDto Type);
 

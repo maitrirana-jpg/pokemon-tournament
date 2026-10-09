@@ -41,7 +41,19 @@ public sealed class TournamentController(TournamentService tournaments) : Contro
         if (descending is null)
             return BadRequest(new { error = "sortDirection parameter is invalid" });
 
-        var records = await tournaments.PlayAsync(cancellationToken);
+        IReadOnlyList<ContenderRecord> records;
+        try
+        {
+            records = await tournaments.PlayAsync(cancellationToken);
+        }
+        catch (PokemonSourceTimeoutException)
+        {
+            return StatusCode(StatusCodes.Status504GatewayTimeout, new { error = "PokéAPI did not respond in time" });
+        }
+        catch (PokemonSourceException)
+        {
+            return StatusCode(StatusCodes.Status502BadGateway, new { error = "PokéAPI request failed" });
+        }
 
         var sorted = descending.Value ? records.OrderByDescending(sortKey, OrdinalComparer) : records.OrderBy(sortKey, OrdinalComparer);
         return Ok(sorted.ThenBy(r => r.Id).ToList());

@@ -43,4 +43,42 @@ describe('StatisticsPage', () => {
     expect(cards.length).toBe(16);
     expect(cards[0].textContent).toContain('pokemon-1');
   });
+
+  it('shows a loading indicator only while the Tournament is being played', async () => {
+    const fixture = TestBed.createComponent(StatisticsPage);
+    const page = fixture.nativeElement as HTMLElement;
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(page.querySelector('[data-testid="loading"]')).not.toBeNull();
+
+    http.expectOne((req) => req.url === '/pokemon/tournament/statistics').flush(sixteenRecords);
+    await fixture.whenStable();
+
+    expect(page.querySelector('[data-testid="loading"]')).toBeNull();
+  });
+
+  for (const status of [502, 504]) {
+    it(`shows an error card on a ${status} and plays again on "Try again"`, async () => {
+      const fixture = TestBed.createComponent(StatisticsPage);
+      const page = fixture.nativeElement as HTMLElement;
+      fixture.detectChanges();
+
+      http
+        .expectOne((req) => req.url === '/pokemon/tournament/statistics')
+        .flush({ error: 'PokéAPI request failed' }, { status, statusText: 'Upstream error' });
+      await fixture.whenStable();
+
+      const errorCard = page.querySelector('[data-testid="error-card"]');
+      expect(errorCard).not.toBeNull();
+      expect(page.querySelectorAll('[data-testid="contender-card"]').length).toBe(0);
+
+      errorCard!.querySelector<HTMLButtonElement>('button')!.click();
+      http.expectOne((req) => req.url === '/pokemon/tournament/statistics').flush(sixteenRecords);
+      await fixture.whenStable();
+
+      expect(page.querySelector('[data-testid="error-card"]')).toBeNull();
+      expect(page.querySelectorAll('[data-testid="contender-card"]').length).toBe(16);
+    });
+  }
 });
