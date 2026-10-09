@@ -15,16 +15,19 @@ public sealed class BattleService
         ["dark"] = "ghost",
     };
 
-    public BattleOutcome Resolve(Pokemon first, Pokemon second)
+    public BattleOutcome Resolve(Pokemon first, Pokemon second) => Decide(first, second).Outcome;
+
+    /// <summary>Decides a Battle and says which rule settled it.</summary>
+    public (BattleOutcome Outcome, BattleReason Reason) Decide(Pokemon first, Pokemon second)
     {
-        if (HasTypeAdvantage(first, second)) return BattleOutcome.FirstWins;
-        if (HasTypeAdvantage(second, first)) return BattleOutcome.SecondWins;
+        if (HasTypeAdvantage(first, second)) return (BattleOutcome.FirstWins, BattleReason.TypeAdvantage);
+        if (HasTypeAdvantage(second, first)) return (BattleOutcome.SecondWins, BattleReason.TypeAdvantage);
 
         return first.BaseExperience.CompareTo(second.BaseExperience) switch
         {
-            > 0 => BattleOutcome.FirstWins,
-            < 0 => BattleOutcome.SecondWins,
-            _ => BattleOutcome.Tie,
+            > 0 => (BattleOutcome.FirstWins, BattleReason.BaseExperience),
+            < 0 => (BattleOutcome.SecondWins, BattleReason.BaseExperience),
+            _ => (BattleOutcome.Tie, BattleReason.EqualBaseExperience),
         };
     }
 

@@ -16,12 +16,47 @@ public sealed class TournamentController(TournamentService tournaments, RoundByR
             return Created($"/pokemon/tournament/{tournament.Id}", TournamentView.From(tournament));
         });
 
+    /// <summary>Every round-by-round Tournament run since the server started, newest first.</summary>
+    [HttpGet("history")]
+    public IReadOnlyList<HistoryEntry> GetHistory() =>
+        roundByRound.History().Select(HistoryEntry.From).ToList();
+
     /// <summary>A round-by-round Tournament's current state.</summary>
     [HttpGet("{id:guid}")]
     public ActionResult<TournamentView> GetTournament(Guid id) =>
         roundByRound.Find(id) is { } tournament
             ? TournamentView.From(tournament)
             : NotFound(new { error = "tournament not found" });
+
+    /// <summary>A Round already played, for review.</summary>
+    [HttpGet("{id:guid}/rounds/{roundNumber:int}")]
+    public ActionResult<Round> GetRound(Guid id, int roundNumber) =>
+        roundByRound.Find(id) is not { } tournament ? NotFound(new { error = "tournament not found" })
+        : tournament.FindRound(roundNumber) is { } round ? round
+        : NotFound(new { error = "round not found" });
+
+    /// <summary>A Battle already played, for review.</summary>
+    [HttpGet("{id:guid}/battles/{battleId:int}")]
+    public ActionResult<Battle> GetBattle(Guid id, int battleId) =>
+        roundByRound.Find(id) is not { } tournament ? NotFound(new { error = "tournament not found" })
+        : tournament.FindBattle(battleId) is { } battle ? battle
+        : NotFound(new { error = "battle not found" });
+
+    /// <summary>Plays the next Round of a round-by-round Tournament.</summary>
+    [HttpPost("{id:guid}/rounds")]
+    public ActionResult<RoundPlayed> PlayNextRound(Guid id)
+    {
+        try
+        {
+            return roundByRound.PlayNextRound(id) is { } played
+                ? played
+                : NotFound(new { error = "tournament not found" });
+        }
+        catch (TournamentCompleteException)
+        {
+            return Conflict(new { error = "tournament is complete" });
+        }
+    }
 
     [HttpGet("statistics")]
     public async Task<ActionResult<IReadOnlyList<ContenderRecord>>> GetStatistics(

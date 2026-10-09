@@ -85,3 +85,11 @@ internal sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
 {
     public override DateTimeOffset GetUtcNow() => now;
 }
+
+/// <summary>A clock that moves on by a fixed step every time it is read.</summary>
+internal sealed class TickingTimeProvider(DateTimeOffset start, TimeSpan step) : TimeProvider
+{
+    private long _reads;
+
+    public override DateTimeOffset GetUtcNow() => start + step * (Interlocked.Increment(ref _reads) - 1);
+}

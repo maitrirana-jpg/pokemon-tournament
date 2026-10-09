@@ -2,8 +2,9 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
 import { RoundByRoundPage } from './round-by-round-page';
-import { TournamentView } from '../round-by-round-api';
+import { Battle, RoundPlayedView, TournamentView } from '../round-by-round-api';
 
 const startedTournament: TournamentView = {
   id: '3f2a6c1e-0000-4000-8000-000000000001',
@@ -21,8 +22,11 @@ const startedTournament: TournamentView = {
   })),
 };
 
-function byTestId(page: HTMLElement, testId: string): HTMLElement | null {
-  return page.querySelector<HTMLElement>(`[data-testid="${testId}"]`);
+function byTestId<T extends HTMLElement = HTMLElement>(
+  page: HTMLElement,
+  testId: string,
+): T | null {
+  return page.querySelector<T>(`[data-testid="${testId}"]`);
 }
 
 function allByTestId(page: HTMLElement, testId: string): HTMLElement[] {
@@ -97,5 +101,228 @@ describe('RoundByRoundPage', () => {
     const { page } = await open();
 
     expect(byTestId(page, 'classic-view')!.getAttribute('href')).toBe('/classic');
+  });
+
+  const contender = (id: number) => ({
+    id,
+    name: `pokemon-${id}`,
+    type: 'normal',
+    baseExperience: 100,
+  });
+
+  /** Round 1: the lower id wins each pair, except 8 vs 9, which ties. */
+  function roundOne(): RoundPlayedView {
+    const battles: Battle[] = Array.from({ length: 8 }, (_, i) => {
+      const [first, second] = [i + 1, 16 - i];
+      const tie = first === 8;
+      return {
+        id: i + 1,
+        round: 1,
+        first: contender(first),
+        second: contender(second),
+        outcome: tie ? 'tie' : 'firstWins',
+        winnerId: tie ? null : first,
+        reason: tie ? 'equalBaseExperience' : 'baseExperience',
+      };
+    });
+    const standings = startedTournament.standings.map((c) => ({
+      ...c,
+      wins: c.id < 8 ? 1 : 0,
+      losses: c.id > 9 ? 1 : 0,
+      ties: c.id === 8 || c.id === 9 ? 1 : 0,
+    }));
+    return {
+      round: { number: 1, battles },
+      standings,
+      roundsPlayed: 1,
+      status: 'inProgress',
+    };
+  }
+
+  async function openStarted() {
+    const opened = await open();
+    byTestId(opened.page, 'start')!.click();
+    http.expectOne('/pokemon/tournament').flush(startedTournament);
+    await opened.fixture.whenStable();
+    return opened;
+  }
+
+  it('processes a Round and reveals its 8 Battles with updated standings', async () => {
+    const { fixture, page } = await openStarted();
+
+    byTestId(page, 'process')!.click();
+    fixture.detectChanges();
+    expect(byTestId<HTMLButtonElement>(page, 'process')!.disabled).toBe(true);
+
+    const request = http.expectOne(`/pokemon/tournament/${startedTournament.id}/rounds`);
+    expect(request.request.method).toBe('POST');
+    request.flush(roundOne());
+    await fixture.whenStable();
+
+    expect(byTestId(page, 'round-counter')!.textContent!.trim()).toBe('Round 1 of 15');
+    const battles = allByTestId(page, 'battle').map((b) =>
+      b.textContent!.replace(/\s+/g, ' ').trim(),
+    );
+    expect(battles).toHaveLength(8);
+    expect(battles[0]).toContain('pokemon-1 vs pokemon-16');
+    expect(battles[0]).toContain('pokemon-1 wins');
+    expect(battles[7]).toContain('pokemon-8 vs pokemon-9');
+    expect(battles[7]).toContain('Tie');
+    expect(allByTestId(page, 'win-rate')[0].textContent!.trim()).toBe('100%');
+    // 1–7 share rank 1 with a win each; everyone else shares rank 8.
+    const medals = allByTestId(page, 'medal').map((m) => m.textContent!.trim());
+    expect(medals).toEqual([...Array(7).fill('🏆'), ...Array(9).fill('🥉')]);
+    expect(byTestId<HTMLButtonElement>(page, 'process')!.disabled).toBe(false);
+  });
+
+  it('stops offering Process Round once the Tournament is complete', async () => {
+    const { fixture, page } = await openStarted();
+
+    byTestId(page, 'process')!.click();
+    http
+      .expectOne(`/pokemon/tournament/${startedTournament.id}/rounds`)
+      .flush({ ...roundOne(), roundsPlayed: 15, status: 'complete' });
+    await fixture.whenStable();
+
+    expect(byTestId<HTMLButtonElement>(page, 'process')!.disabled).toBe(true);
+    expect(byTestId(page, 'round-counter')!.textContent!.trim()).toBe('Round 15 of 15');
+  });
+
+  it('shows an error card when a Round fails, and Try again plays it', async () => {
+    const { fixture, page } = await openStarted();
+
+    byTestId(page, 'process')!.click();
+    http
+      .expectOne(`/pokemon/tournament/${startedTournament.id}/rounds`)
+      .flush({ error: 'boom' }, { status: 500, statusText: 'Server Error' });
+    await fixture.whenStable();
+
+    byTestId(page, 'error-card')!.querySelector('button')!.click();
+    http.expectOne(`/pokemon/tournament/${startedTournament.id}/rounds`).flush(roundOne());
+    await fixture.whenStable();
+
+    expect(byTestId(page, 'error-card')).toBeNull();
+    expect(allByTestId(page, 'battle')).toHaveLength(8);
+  });
+
+  async function openAfterTwoRounds() {
+    const opened = await openStarted();
+    const roundsUrl = `/pokemon/tournament/${startedTournament.id}/rounds`;
+    byTestId(opened.page, 'process')!.click();
+    http.expectOne(roundsUrl).flush(roundOne());
+    await opened.fixture.whenStable();
+    byTestId(opened.page, 'process')!.click();
+    const two = roundOne();
+    http.expectOne(roundsUrl).flush({
+      ...two,
+      round: {
+        number: 2,
+        battles: two.round.battles.map((b) => ({ ...b, id: b.id + 8, round: 2 })),
+      },
+      roundsPlayed: 2,
+    });
+    await opened.fixture.whenStable();
+    return opened;
+  }
+
+  it('lets the user pick any played Round to review its Battles', async () => {
+    const { fixture, page } = await openAfterTwoRounds();
+
+    const picks = allByTestId(page, 'round-pick');
+    expect(picks.map((p) => p.textContent!.trim())).toEqual(['1', '2']);
+
+    picks[0].click();
+    http.expectOne(`/pokemon/tournament/${startedTournament.id}/rounds/1`).flush(roundOne().round);
+    await fixture.whenStable();
+
+    expect(byTestId(page, 'round')!.querySelector('h2')!.textContent!.trim()).toBe('Round 1');
+    expect(allByTestId(page, 'battle')).toHaveLength(8);
+  });
+
+  it('shows a Battle in detail, with the reason it was decided', async () => {
+    const { fixture, page } = await openAfterTwoRounds();
+
+    allByTestId(page, 'battle')[0].click();
+    const battle = { ...roundOne().round.battles[0], id: 9, round: 2, reason: 'typeAdvantage' };
+    http.expectOne(`/pokemon/tournament/${startedTournament.id}/battles/9`).flush(battle);
+    await fixture.whenStable();
+
+    const detail = byTestId(page, 'battle-detail')!.textContent!.replace(/\s+/g, ' ');
+    expect(detail).toContain('Battle 9 · Round 2');
+    expect(detail).toContain('pokemon-1');
+    expect(detail).toContain('pokemon-16');
+    expect(detail).toContain('Base experience 100');
+    expect(detail).toContain('pokemon-1 wins');
+    expect(detail).toContain('Type advantage');
+  });
+
+  it('links to the history of past Tournaments', async () => {
+    const { page } = await open();
+
+    expect(byTestId(page, 'history')!.getAttribute('href')).toBe('/history');
+  });
+
+  async function openAt(url: string) {
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([{ path: 'tournament/:id', component: RoundByRoundPage }]),
+      ],
+    });
+    http = TestBed.inject(HttpTestingController);
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl(url, RoundByRoundPage);
+    return harness;
+  }
+
+  it('resumes a stored Tournament and lets Process Round continue it', async () => {
+    const harness = await openAt(`/tournament/${startedTournament.id}`);
+    http
+      .expectOne(`/pokemon/tournament/${startedTournament.id}`)
+      .flush({ ...startedTournament, roundsPlayed: 1 });
+    harness.detectChanges();
+    await harness.fixture.whenStable();
+    const page = harness.routeNativeElement!;
+
+    expect(byTestId(page, 'round-counter')!.textContent!.trim()).toBe('Round 1 of 15');
+    expect(allByTestId(page, 'contender-card')).toHaveLength(16);
+
+    byTestId(page, 'process')!.click();
+    http.expectOne(`/pokemon/tournament/${startedTournament.id}/rounds`).flush({
+      ...roundOne(),
+      round: { ...roundOne().round, number: 2 },
+      roundsPlayed: 2,
+    });
+    await harness.fixture.whenStable();
+
+    expect(byTestId(page, 'round-counter')!.textContent!.trim()).toBe('Round 2 of 15');
+  });
+
+  it('says so when the Tournament to resume does not exist', async () => {
+    const harness = await openAt('/tournament/unknown-id');
+    http
+      .expectOne('/pokemon/tournament/unknown-id')
+      .flush({ error: 'tournament not found' }, { status: 404, statusText: 'Not Found' });
+    harness.detectChanges();
+    await harness.fixture.whenStable();
+    const page = harness.routeNativeElement!;
+
+    expect(byTestId(page, 'not-found')).not.toBeNull();
+    expect(byTestId(page, 'error-card')).toBeNull();
+  });
+
+  it('treats a missing Round as an error, not as a missing Tournament', async () => {
+    const { fixture, page } = await openAfterTwoRounds();
+
+    allByTestId(page, 'round-pick')[0].click();
+    http
+      .expectOne(`/pokemon/tournament/${startedTournament.id}/rounds/1`)
+      .flush({ error: 'round not found' }, { status: 404, statusText: 'Not Found' });
+    await fixture.whenStable();
+
+    expect(byTestId(page, 'not-found')).toBeNull();
+    expect(byTestId(page, 'error-card')).not.toBeNull();
   });
 });
