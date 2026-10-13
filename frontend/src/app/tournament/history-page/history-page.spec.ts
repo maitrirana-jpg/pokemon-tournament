@@ -82,4 +82,43 @@ describe('HistoryPage', () => {
     const page = fixture.nativeElement as HTMLElement;
     expect(page.querySelector('[data-testid="history-error"]')).not.toBeNull();
   });
+
+  it('clears the history after the user confirms', async () => {
+    const fixture = TestBed.createComponent(HistoryPage);
+    fixture.detectChanges();
+    http.expectOne('/pokemon/tournament/history').flush(entries);
+    await fixture.whenStable();
+    const page = fixture.nativeElement as HTMLElement;
+    const byTestId = (id: string) => page.querySelector<HTMLElement>(`[data-testid="${id}"]`);
+
+    byTestId('clear-history')!.click();
+    fixture.detectChanges();
+    // Nothing is cleared until the user confirms.
+    http.expectNone('/pokemon/tournament/history');
+    byTestId('confirm-clear')!.click();
+    const request = http.expectOne('/pokemon/tournament/history');
+    expect(request.request.method).toBe('DELETE');
+    request.flush(null, { status: 204, statusText: 'No Content' });
+    await fixture.whenStable();
+
+    expect(page.querySelectorAll('[data-testid="history-entry"]')).toHaveLength(0);
+    expect(byTestId('history-empty')).not.toBeNull();
+    expect(byTestId('clear-history')).toBeNull();
+  });
+
+  it('keeps the history when clearing is cancelled', async () => {
+    const fixture = TestBed.createComponent(HistoryPage);
+    fixture.detectChanges();
+    http.expectOne('/pokemon/tournament/history').flush(entries);
+    await fixture.whenStable();
+    const page = fixture.nativeElement as HTMLElement;
+
+    page.querySelector<HTMLElement>('[data-testid="clear-history"]')!.click();
+    fixture.detectChanges();
+    page.querySelector<HTMLElement>('[data-testid="cancel-clear"]')!.click();
+    fixture.detectChanges();
+
+    expect(page.querySelectorAll('[data-testid="history-entry"]')).toHaveLength(2);
+    expect(page.querySelector('[data-testid="clear-history"]')).not.toBeNull();
+  });
 });

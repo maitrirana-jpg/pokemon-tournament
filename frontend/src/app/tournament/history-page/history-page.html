@@ -1,8 +1,48 @@
 <main class="container py-4" style="max-width: 48rem">
   <header class="d-flex align-items-center justify-content-between mb-3">
     <h1 class="h3 fw-bold mb-0">Tournament history</h1>
-    <a class="btn btn-outline-secondary" routerLink="/">Back to Tournament</a>
+    <span class="d-flex gap-2">
+      @if (entries()?.length) {
+        @if (confirmingClear()) {
+          <span class="align-self-center small text-body-secondary">Clear every Tournament?</span>
+          <button
+            type="button"
+            class="btn btn-danger"
+            data-testid="confirm-clear"
+            [disabled]="clearing()"
+            (click)="clear()"
+          >
+            Yes, clear
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            data-testid="cancel-clear"
+            [disabled]="clearing()"
+            (click)="confirmingClear.set(false)"
+          >
+            Cancel
+          </button>
+        } @else {
+          <button
+            type="button"
+            class="btn btn-outline-danger"
+            data-testid="clear-history"
+            (click)="confirmingClear.set(true)"
+          >
+            Clear history
+          </button>
+        }
+      }
+      <a class="btn btn-outline-secondary" routerLink="/">Back to Tournament</a>
+    </span>
   </header>
+
+  @if (clearFailed()) {
+    <p class="alert alert-danger py-2" data-testid="clear-error">
+      The history couldn't be cleared. Please try again.
+    </p>
+  }
 
   @if (failed()) {
     <p class="text-danger text-center py-5" data-testid="history-error">

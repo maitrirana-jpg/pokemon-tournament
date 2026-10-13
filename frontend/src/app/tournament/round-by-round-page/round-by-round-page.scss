@@ -6,4 +6,223 @@
   &:hover:not(:disabled) {
     box-shadow: var(--bs-box-shadow-sm);
   }
+
+  .icon {
+    width: 2rem;
+    height: 2rem;
+    object-fit: contain;
+    margin-right: 0.25rem;
+
+    &.lost {
+      filter: grayscale(1);
+      opacity: 0.6;
+    }
+  }
+}
+
+.portrait {
+  width: 6rem;
+  height: 6rem;
+  object-fit: contain;
+}
+
+// The title screen before any Tournament: a night sky, a pixel logo and a game menu.
+$night: #161a35;
+$spark: #ffd54f;
+$pixel: 'Press Start 2P', ui-monospace, monospace;
+
+.title-screen {
+  position: relative;
+  overflow: hidden;
+  max-width: 52rem;
+  margin: 2rem auto 0;
+  padding: 3rem 1.5rem 2.5rem;
+  border-radius: 1.25rem;
+  color: #fff;
+  background:
+    radial-gradient(circle at 50% 120%, rgba(255, 213, 79, 0.35), transparent 55%),
+    radial-gradient(circle at 15% 10%, rgba(99, 102, 241, 0.45), transparent 45%),
+    radial-gradient(circle at 85% 20%, rgba(236, 72, 153, 0.35), transparent 45%), $night;
+  box-shadow: 0 1rem 2.5rem rgba(22, 26, 53, 0.35);
+}
+
+// A field of twinkling dots behind everything else.
+.stars {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 10% 20%, #fff, transparent),
+    radial-gradient(1px 1px at 30% 70%, #fff, transparent),
+    radial-gradient(2px 2px at 55% 15%, #fff, transparent),
+    radial-gradient(1px 1px at 75% 55%, #fff, transparent),
+    radial-gradient(2px 2px at 90% 80%, #fff, transparent),
+    radial-gradient(1px 1px at 45% 90%, #fff, transparent),
+    radial-gradient(1px 1px at 20% 85%, #fff, transparent),
+    radial-gradient(2px 2px at 65% 40%, #fff, transparent);
+  opacity: 0.6;
+  animation: twinkle 3s ease-in-out infinite alternate;
+}
+
+.title-screen > :not(.stars) {
+  position: relative;
+}
+
+.kicker {
+  font-family: $pixel;
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.logo {
+  font-family: $pixel;
+  line-height: 1.25;
+  color: $spark;
+  text-transform: uppercase;
+  // A chunky blue outline, like the games' logo.
+  text-shadow:
+    3px 3px 0 #2a4ea0,
+    -2px -2px 0 #2a4ea0,
+    2px -2px 0 #2a4ea0,
+    -2px 2px 0 #2a4ea0,
+    0 0 1.5rem rgba(255, 213, 79, 0.45);
+
+  span {
+    display: block;
+    font-size: clamp(1.5rem, 6vw, 2.75rem);
+  }
+
+  span + span {
+    font-size: clamp(1.1rem, 4.5vw, 2rem);
+    margin-top: 0.5rem;
+  }
+}
+
+.starters {
+  display: flex;
+  justify-content: center;
+  gap: clamp(0.25rem, 3vw, 1.5rem);
+  margin-bottom: 1.25rem;
+
+  img {
+    width: clamp(4rem, 15vw, 6rem);
+    height: auto;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 0.6rem 0.25rem rgba(0, 0, 0, 0.5));
+    animation: hop 1.6s ease-in-out infinite;
+    animation-delay: calc(var(--i) * 0.2s);
+  }
+}
+
+.hud li {
+  padding: 0.35rem 0.75rem;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  background: rgba(0, 0, 0, 0.25);
+
+  strong {
+    color: $spark;
+  }
+}
+
+// A boxed menu like the games' start screen; the cursor marks the hovered item.
+.menu {
+  display: flex;
+  flex-direction: column;
+  max-width: 18rem;
+  padding: 0.5rem;
+  border: 3px solid #fff;
+  border-radius: 0.75rem;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.menu-item {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.25rem;
+  border: 0;
+  border-radius: 0.4rem;
+  font-family: $pixel;
+  font-size: 0.75rem;
+  text-align: left;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: #fff;
+  background: transparent;
+
+  &::before {
+    content: '▶';
+    position: absolute;
+    left: 0.9rem;
+    opacity: 0;
+    color: $spark;
+  }
+
+  &:hover,
+  &:focus-visible {
+    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  &.primary {
+    color: $spark;
+
+    &::before {
+      opacity: 1;
+      animation: nudge 0.8s steps(2) infinite;
+    }
+  }
+}
+
+.press-start {
+  font-family: $pixel;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+  animation: blink 1.2s steps(2) infinite;
+}
+
+@keyframes hop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-0.75rem);
+  }
+}
+
+@keyframes twinkle {
+  to {
+    opacity: 0.25;
+  }
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes nudge {
+  50% {
+    transform: translateX(0.2rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stars,
+  .starters img,
+  .press-start,
+  .menu-item.primary::before {
+    animation: none;
+  }
 }

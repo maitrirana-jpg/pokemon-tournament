@@ -1,26 +1,52 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
-import { EMPTY, catchError } from 'rxjs';
-import { RoundByRoundApiService } from '../round-by-round-api';
+import { finalize } from 'rxjs';
+import { HistoryEntry, RoundByRoundApiService } from '../round-by-round-api';
 
-/** Lists every round-by-round Tournament run so far. */
+/** Lists every round-by-round Tournament run so far, and can clear them all. */
 @Component({
   selector: 'app-history-page',
   imports: [DatePipe, RouterLink],
   templateUrl: './history-page.html',
 })
 export class HistoryPage {
+  private readonly api = inject(RoundByRoundApiService);
+  private readonly destroyRef = inject(DestroyRef);
+
   protected readonly failed = signal(false);
-  protected readonly entries = toSignal(
-    inject(RoundByRoundApiService)
+  protected readonly clearFailed = signal(false);
+  protected readonly clearing = signal(false);
+  /** Clearing can't be undone, so the first click only asks to confirm. */
+  protected readonly confirmingClear = signal(false);
+  protected readonly entries = signal<HistoryEntry[] | undefined>(undefined);
+
+  constructor() {
+    this.api
       .history()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (list) => this.entries.set(list),
+        error: () => this.failed.set(true),
+      });
+  }
+
+  protected clear(): void {
+    this.clearFailed.set(false);
+    this.clearing.set(true);
+    this.api
+      .clearHistory()
       .pipe(
-        catchError(() => {
-          this.failed.set(true);
-          return EMPTY;
+        finalize(() => {
+          this.clearing.set(false);
+          this.confirmingClear.set(false);
         }),
-      ),
-  );
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe({
+        next: () => this.entries.set([]),
+        error: () => this.clearFailed.set(true),
+      });
+  }
 }
