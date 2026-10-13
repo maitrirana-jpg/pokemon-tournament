@@ -1,0 +1,170 @@
+$night: #161a35;
+$spark: #ffd54f;
+
+.arena {
+  border-radius: 1rem;
+  overflow: hidden;
+  color: #fff;
+  background: $night;
+}
+
+.arena-bar {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+// Each side of the stage glows in its Contender's type colour.
+.stage {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 1rem;
+  min-height: 17rem;
+  padding: 1.5rem 1rem;
+  background:
+    radial-gradient(
+      circle at 20% 60%,
+      color-mix(in srgb, var(--left) 55%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at 80% 60%,
+      color-mix(in srgb, var(--right) 55%, transparent),
+      transparent 55%
+    ),
+    $night;
+}
+
+.fighter {
+  margin: 0;
+  text-align: center;
+  transition:
+    opacity 0.4s ease,
+    filter 0.4s ease,
+    transform 0.4s ease;
+
+  img {
+    width: 10rem;
+    height: 10rem;
+    object-fit: contain;
+    filter: drop-shadow(0 0.75rem 0.5rem rgba(0, 0, 0, 0.55));
+    transition: filter 0.4s ease;
+  }
+
+  // Sprites face left; turn the left Contender to face its opponent.
+  &.left img {
+    transform: scaleX(-1);
+  }
+
+  .name {
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+}
+
+.vs {
+  font-size: 2.75rem;
+  font-weight: 900;
+  font-style: italic;
+  color: $spark;
+  text-shadow: 0 0 1rem rgba(255, 213, 79, 0.8);
+}
+
+.enter {
+  .left {
+    animation: enter-left 0.45s ease-out both;
+  }
+  .right {
+    animation: enter-right 0.45s ease-out both;
+  }
+  .vs {
+    opacity: 0.3;
+  }
+}
+
+.clash {
+  .left {
+    animation: lunge-right 0.45s ease-in-out;
+  }
+  .right {
+    animation: lunge-left 0.45s ease-in-out;
+  }
+  .vs {
+    animation: flash 0.45s ease-in-out;
+  }
+}
+
+.winner {
+  transform: scale(1.1);
+
+  img {
+    filter: drop-shadow(0 0 1.25rem $spark);
+  }
+}
+
+.loser {
+  opacity: 0.4;
+  filter: grayscale(1);
+  transform: translateY(0.75rem) rotate(-8deg);
+  animation: knocked 0.4s ease-in-out;
+}
+
+.tied {
+  opacity: 0.85;
+}
+
+.banner {
+  min-height: 2.75rem;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+@keyframes enter-left {
+  from {
+    opacity: 0;
+    transform: translateX(-4rem);
+  }
+}
+
+@keyframes enter-right {
+  from {
+    opacity: 0;
+    transform: translateX(4rem);
+  }
+}
+
+@keyframes lunge-right {
+  50% {
+    transform: translateX(2.5rem);
+  }
+}
+
+@keyframes lunge-left {
+  50% {
+    transform: translateX(-2.5rem);
+  }
+}
+
+@keyframes flash {
+  50% {
+    transform: scale(1.5);
+    text-shadow: 0 0 2.5rem $spark;
+  }
+}
+
+@keyframes knocked {
+  20%,
+  60% {
+    transform: translateX(-0.5rem);
+  }
+  40%,
+  80% {
+    transform: translateX(0.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fighter,
+  .vs {
+    animation: none !important;
+    transition: none !important;
+  }
+}

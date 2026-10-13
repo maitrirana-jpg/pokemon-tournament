@@ -21,6 +21,14 @@ public sealed class TournamentController(TournamentService tournaments, RoundByR
     public IReadOnlyList<HistoryEntry> GetHistory() =>
         roundByRound.History().Select(HistoryEntry.From).ToList();
 
+    /// <summary>Clears the history: every round-by-round Tournament is forgotten.</summary>
+    [HttpDelete("history")]
+    public NoContentResult ClearHistory()
+    {
+        roundByRound.ClearHistory();
+        return NoContent();
+    }
+
     /// <summary>A round-by-round Tournament's current state.</summary>
     [HttpGet("{id:guid}")]
     public ActionResult<TournamentView> GetTournament(Guid id) =>

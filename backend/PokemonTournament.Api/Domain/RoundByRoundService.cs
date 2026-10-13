@@ -25,4 +25,7 @@ public sealed class RoundByRoundService(
 
     /// <summary>Every Tournament started since the server came up, newest first.</summary>
     public IReadOnlyList<RoundByRoundTournament> History() => store.All();
+
+    /// <summary>Forgets every Tournament, so none can be reviewed or resumed.</summary>
+    public void ClearHistory() => store.Clear();
 }

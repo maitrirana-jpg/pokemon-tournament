@@ -24,6 +24,27 @@ export interface Battle {
   reason: 'typeAdvantage' | 'baseExperience' | 'equalBaseExperience';
 }
 
+/** Who won and who lost a Battle, or null for a tie. */
+export function battleResult(
+  battle: Battle,
+): { winner: BattleContender; loser: BattleContender } | null {
+  if (battle.winnerId === null) return null;
+  return battle.winnerId === battle.first.id
+    ? { winner: battle.first, loser: battle.second }
+    : { winner: battle.second, loser: battle.first };
+}
+
+const reasonLabels: Record<Battle['reason'], string> = {
+  typeAdvantage: 'Type advantage',
+  baseExperience: 'Higher base experience',
+  equalBaseExperience: 'Equal base experience',
+};
+
+/** The Battle rule that settled a Battle, in words. */
+export function reasonLabel(battle: Battle): string {
+  return reasonLabels[battle.reason];
+}
+
 /** One Round: each Contender's single Battle in it. */
 export interface Round {
   number: number;
@@ -91,5 +112,10 @@ export class RoundByRoundApiService {
   /** Every Tournament run since the server started, newest first. */
   history(): Observable<HistoryEntry[]> {
     return this.http.get<HistoryEntry[]>('/pokemon/tournament/history');
+  }
+
+  /** Forgets every Tournament in the history. */
+  clearHistory(): Observable<void> {
+    return this.http.delete<void>('/pokemon/tournament/history');
   }
 }

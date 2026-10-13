@@ -1,0 +1,16 @@
+.toolbar {
+  display: flex;
+  flex-flow: row wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+// Each picker keeps its natural width instead of stretching across the bar.
+.input-group {
+  width: auto;
+  flex-wrap: nowrap;
+}
+
+.form-select {
+  width: auto;
+}

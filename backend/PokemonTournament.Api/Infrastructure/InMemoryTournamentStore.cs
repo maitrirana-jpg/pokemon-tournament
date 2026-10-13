@@ -34,4 +34,13 @@ public sealed class InMemoryTournamentStore : ITournamentStore
                 .Select(t => t.tournament)
                 .ToList();
     }
+
+    public void Clear()
+    {
+        lock (_gate)
+        {
+            _byId.Clear();
+            _inStartOrder.Clear();
+        }
+    }
 }

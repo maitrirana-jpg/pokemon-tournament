@@ -11,4 +11,7 @@ public interface ITournamentStore
 
     /// <summary>Every Tournament kept so far, newest first.</summary>
     IReadOnlyList<RoundByRoundTournament> All();
+
+    /// <summary>Forgets every Tournament kept so far.</summary>
+    void Clear();
 }

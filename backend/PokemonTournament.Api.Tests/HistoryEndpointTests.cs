@@ -68,6 +68,18 @@ public sealed class HistoryEndpointTests : IDisposable
         Assert.Equal(1, top.Wins);
     }
 
+    [Fact]
+    public async Task Clearing_history_forgets_every_tournament()
+    {
+        var client = _factory.CreateClient();
+        var id = await Start(client);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await client.DeleteAsync("/pokemon/tournament/history")).StatusCode);
+
+        Assert.Empty(await History(client));
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/pokemon/tournament/{id}")).StatusCode);
+    }
+
     private sealed record ContenderDto(int Id, string Name, int Wins);
 
     private sealed record StandingsDto(List<ContenderDto> Standings);

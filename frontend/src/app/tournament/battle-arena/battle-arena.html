@@ -1,0 +1,62 @@
+@let current = battle();
+<section class="arena shadow mb-3" data-testid="arena" aria-live="polite">
+  <div class="arena-bar d-flex align-items-center gap-2 px-3 py-2">
+    <span class="fw-semibold">Round {{ current.round }}</span>
+    @if (battles().length > 1) {
+      <span class="opacity-75">· Battle {{ index() + 1 }} of {{ battles().length }}</span>
+    }
+    <button
+      type="button"
+      class="btn btn-sm btn-outline-light ms-auto"
+      data-testid="skip-replay"
+      (click)="skip()"
+    >
+      Skip ▸▸
+    </button>
+  </div>
+
+  <div
+    class="stage"
+    [class]="phase()"
+    [style.--left]="typeColour(current.first.type)"
+    [style.--right]="typeColour(current.second.type)"
+  >
+    @for (side of [current.first, current.second]; track $index; let left = $first) {
+      <figure
+        class="fighter"
+        [class.left]="left"
+        [class.right]="!left"
+        [class.winner]="outcomeFor(side) === 'winner'"
+        [class.loser]="outcomeFor(side) === 'loser'"
+        [class.tied]="outcomeFor(side) === 'tie'"
+      >
+        <img [src]="spriteUrl(side.id)" [alt]="side.name" width="160" height="160" />
+        <figcaption>
+          <div class="name text-capitalize">{{ side.name }}</div>
+          <span class="badge rounded-pill" [style.background-color]="typeColour(side.type)">
+            {{ side.type }}
+          </span>
+          <span class="small opacity-75 ms-1">Base exp. {{ side.baseExperience }}</span>
+        </figcaption>
+      </figure>
+      @if (left) {
+        <div class="vs" aria-hidden="true">VS</div>
+      }
+    }
+  </div>
+
+  <div class="banner text-center px-3 py-2" data-testid="arena-banner">
+    @if (phase() === 'result') {
+      @if (result(); as r) {
+        <strong class="text-capitalize">{{ r.winner.name }} wins!</strong>
+      } @else {
+        <strong>It's a tie!</strong>
+      }
+      <span class="opacity-75"> · {{ reasonLabel(current) }}</span>
+    } @else {
+      <span class="opacity-75 text-capitalize">
+        {{ current.first.name }} faces {{ current.second.name }}…
+      </span>
+    }
+  </div>
+</section>
