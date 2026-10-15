@@ -3,6 +3,7 @@ Assessment-Doc/
 
 # Local Claude settings
 .claude/settings.local.json
+.scratch
 
 # Secrets
 .env
